@@ -1,143 +1,253 @@
-#include <stdio.h> // debug
+#include <stdlib.h>
+#include <string.h>
 #include "bencode.h"
 
-void bencode_init(bencode_t *be, char *str, size_t len) {
-    be->str = be->start = str;
-    be->len = len;
+void
+bencode_reinit(struct bencode *ctx, const void *buf, size_t len)
+{
+    ctx->tok = 0;
+    ctx->toklen = 0;
+    ctx->buf = buf;
+    ctx->buflen = len;
+    ctx->size = 0;
 }
 
-int bencode_is_int(bencode_t *be) {
-    return be->str && *be->str == 'i';
+void
+bencode_init(struct bencode *ctx, const void *buf, size_t len)
+{
+    ctx->tok = 0;
+    ctx->toklen = 0;
+    ctx->buf = buf;
+    ctx->buflen = len;
+    ctx->stack = 0;
+    ctx->cap = 0;
+    ctx->size = 0;
 }
 
-int bencode_is_string(bencode_t *be) {
-    char *sp = be->str;
-    if (!isdigit(*sp)) {
-        return 0;
-    }
-    do {
-        sp ++;
-    } while(isdigit(*sp));
-    return *sp == ':';
+void
+bencode_free(struct bencode *ctx)
+{
+    free(ctx->stack);
+    ctx->stack = 0;
 }
 
-int bencode_is_list(bencode_t *be) {
-    return be->str && *be->str == 'l';
+static int
+bencode_get(struct bencode *ctx)
+{
+    const unsigned char *p = ctx->buf;
+    if (!ctx->buflen)
+        return -1;
+    ctx->buflen--;
+    ctx->buf = p + 1;
+    return *p;
 }
 
-int bencode_is_dict(bencode_t *be) {
-    return be->str && *be->str == 'd';
+static int
+bencode_peek(struct bencode *ctx)
+{
+    if (!ctx->buflen)
+        return -1;
+    return *(unsigned char *)ctx->buf;;
 }
 
-int bencode_dict_has_next(bencode_t *be) {
-    char *sp = be->str;
-    if (!sp ||
-        // end of a string 
-        *sp == '\0' || *sp == '\r' ||
-        // end of a list or a dict
-        *sp == 'e' ||
-        // an empty dict or list
-        (*sp == 'd' && *(sp + 1) == 'e') ||
-        (*sp == 'l' && *(sp + 1) == 'e')) {
-            return 0;
-    }
-    return 1;
-}
-
-char *_bencode_str_len(char *sp, size_t *strlen) {
-    *strlen = 0;
-
-    if (!isdigit(*sp)) {
-        return NULL;
-    }
-
-    do {
-        *strlen *= 10;
-        *strlen += *sp - '0';
-        sp ++;
-    } while(isdigit(*sp));
-
-    if (*sp != ':') {
-        return NULL;
-    }
-    return sp + 1;
-}
-
-int _bencode_carry_length(bencode_t * be, char *pos) {
-    return be->len - (pos - be->str);
-}
-
-char *_bencode_iterate_to_next_string_pos(bencode_t *be, char *sp) {
-    bencode_t *iter = (bencode_t *)malloc(sizeof(bencode_t));
-    bencode_init(iter, sp, _bencode_carry_length(be, sp));
-
-    if (bencode_is_dict(iter)) {
-        /* navigate to the end of the dictionary */
-        while (bencode_dict_has_next(iter))
-        {
-            /* ERROR: input string is invalid */
-            bencode_t *dummy = (bencode_t *)malloc(sizeof(bencode_t));
-            if (0 == bencode_dict_get_next(iter, dummy)) {
-                free(dummy);
-                return NULL;
-            }
-            free(dummy);
+static size_t
+bencode_push(struct bencode *ctx)
+{
+    if (ctx->size == ctx->cap) {
+        void *newstack;
+        size_t bytes, newcap;
+        if (!ctx->stack) {
+            newcap = 64;
+        } else {
+            newcap = ctx->cap * 2;
+            if (!newcap) return -1;
         }
-
-        /* special case for empty dict */
-        if (*(iter->str) == 'd' && *(iter->str + 1) == 'e')
-            return iter->str + 2;
-
-        return iter->str + 1;
-    } else if (bencode_is_string(iter)) {
-        char *str;
-        size_t *strlen = 0;
-
-        /* ERROR: input string is invalid */
-        if (0 == bencode_string_value(iter, &str, strlen))
-            return NULL;
-
-        return str + *strlen;
+        bytes = newcap * sizeof(ctx->stack[0]);
+        if (!bytes) return -1;
+        newstack = realloc(ctx->stack, bytes);
+        if (!newstack) return -1;
+        ctx->stack = newstack;
     }
-    return NULL;
+    return ctx->size++;
 }
 
-int bencode_dict_get_next(bencode_t *be, bencode_t *val) {
-    char *sp = be->str;
-    size_t strlen = 0;
+static int
+bencode_integer(struct bencode *ctx)
+{
+    int c;
 
-    if (*sp == 'e') {
-        return 0;
+    ctx->tok = ctx->buf;
+
+    c = bencode_get(ctx);
+    switch (c) {
+        case -1:
+            return BENCODE_ERROR_EOF;
+        case 0x2d: /* - */
+            c = bencode_get(ctx);
+            if (c == -1)
+                return BENCODE_ERROR_EOF;
+            if (c < 0x31 || c > 0x39) /* 1-9 */
+                return BENCODE_ERROR_INVALID;
+            break;
+        case 0x30: /* 0 */
+            c = bencode_get(ctx);
+            if (c == -1)
+                return BENCODE_ERROR_EOF;
+            if (c != 0x65) /* e */
+                return BENCODE_ERROR_INVALID;
+            ctx->toklen = 1;
+            return BENCODE_INTEGER;
     }
+    if (c < 0x30 || c > 0x39)
+        return BENCODE_ERROR_INVALID;
 
-    char *cur = _bencode_str_len(sp, &strlen);
-    if (!cur) {
-        return 0;
-    };
-
-    bencode_init(val, cur + strlen, _bencode_carry_length(be, cur + strlen));
-    if (!(be->str = _bencode_iterate_to_next_string_pos(be, cur + strlen)))
-    {
-        return 0;
-    }
-
-    return 1;
+    /* Read until 'e' */
+    do
+        c = bencode_get(ctx);
+    while (c >= 0x30 && c <= 0x39);
+    if (c == -1)
+        return BENCODE_ERROR_EOF;
+    if (c != 0x65) /* e */
+        return BENCODE_ERROR_INVALID;
+    ctx->toklen = (char *)ctx->buf - (char *)ctx->tok - 1;
+    return BENCODE_INTEGER;
 }
 
-int bencode_string_value(bencode_t *be, char **str, size_t *strlen) {
-    char *sp = _bencode_str_len(be->str, strlen);
-    
-    /*  make sure we still fit within the buffer */
-    if (sp + *strlen > be->start + (size_t) be->len)
-    {
-        *str = NULL;
-        return 0;
+static int
+bencode_string(struct bencode *ctx)
+{
+    int c;
+    const unsigned char *tok = (unsigned char *)ctx->buf - 1;
+
+    /* Consume the remaining digits */
+    do
+        c = bencode_get(ctx);
+    while (c >= 0x30 && c <= 0x39);
+    if (c == -1)
+        return BENCODE_ERROR_EOF;
+    if (c != 0x3a) /* : */
+        return BENCODE_ERROR_INVALID;
+
+    /* Decode the length */
+    ctx->tok = ctx->buf;
+    ctx->toklen = 0;
+    for (; tok < (unsigned char *)ctx->buf - 1; tok++) {
+        size_t n = ctx->toklen * 10 + (*tok - 0x30);
+        if (n < ctx->toklen) {
+            /* Overflow: length definitely extends beyond the buffer size */
+            return BENCODE_ERROR_EOF;
+        }
+        ctx->toklen = n;
     }
 
-    *str = sp;
-    return 1;
-
+    /* Advance input to end of string */
+    if (ctx->buflen < ctx->toklen)
+        return BENCODE_ERROR_EOF;
+    ctx->buf = (char *)ctx->buf + ctx->toklen;
+    ctx->buflen -= ctx->toklen;
+    return BENCODE_STRING;
 }
 
+int
+bencode_next(struct bencode *ctx)
+{
+    int c, r;
+    size_t i;
+    void **keyptr = 0;
+    size_t *keylenptr = 0;
 
+    if (ctx->size) {
+        int *flags = &ctx->stack[ctx->size - 1].flags;
+        *flags &= ~BENCODE_FLAG_FIRST;
+        if (*flags & BENCODE_FLAG_DICT) {
+            /* Inside a dictionary, validate it */
+            int c = bencode_peek(ctx);
+            if (*flags & BENCODE_FLAG_EXPECT_VALUE) {
+                /* Cannot end dictionary here */
+                if (c == 0x65)
+                    return BENCODE_ERROR_INVALID;
+                *flags &= ~BENCODE_FLAG_EXPECT_VALUE;
+            } else {
+                /* Next value must look like a string or 'e' */
+                if (c != 0x65 && (c < 0x30 || c > 0x39)) /* e, 0-9 */
+                    return BENCODE_ERROR_INVALID;
+                *flags |= BENCODE_FLAG_EXPECT_VALUE;
+                keyptr = &ctx->stack[ctx->size - 1].key;
+                keylenptr = &ctx->stack[ctx->size - 1].keylen;
+            }
+        }
+    } else if (ctx->buflen == 0) {
+        return ctx->tok ? BENCODE_DONE : BENCODE_ERROR_EOF;
+    }
 
+    r = BENCODE_ERROR_INVALID;
+    c = bencode_get(ctx);
+    switch (c) {
+        case -1:
+            return BENCODE_ERROR_EOF;
+        case 0x64: /* d */
+            i = bencode_push(ctx);
+            if (i == (size_t)-1)
+                return BENCODE_ERROR_OOM;
+            ctx->stack[i].key = 0;
+            ctx->stack[i].keylen = 0;
+            ctx->stack[i].flags = BENCODE_FLAG_DICT | BENCODE_FLAG_FIRST;
+            return BENCODE_DICT_BEGIN;
+        case 0x65: /* e */
+            if (!ctx->size)
+                return BENCODE_ERROR_INVALID;
+            i = --ctx->size;
+            if (ctx->stack[i].flags & BENCODE_FLAG_DICT)
+                return BENCODE_DICT_END;
+            return BENCODE_LIST_END;
+        case 0x69: /* i */
+            return bencode_integer(ctx);
+        case 0x6c: /* l */
+            i = bencode_push(ctx);
+            if (i == (size_t)-1)
+                return BENCODE_ERROR_OOM;
+            ctx->stack[i].flags = BENCODE_FLAG_FIRST;
+            return BENCODE_LIST_BEGIN;
+        case 0x30: /* 0 */
+            c = bencode_get(ctx);
+            if (c == -1)
+                return BENCODE_ERROR_EOF;
+            if (c != 0x3a) /* : */
+                return BENCODE_ERROR_INVALID;
+            ctx->tok = ctx->buf;
+            ctx->toklen = 0;
+            r = BENCODE_STRING;
+            break;
+        case 0x31: /* 1 */
+        case 0x32: /* 2 */
+        case 0x33: /* 3 */
+        case 0x34: /* 4 */
+        case 0x35: /* 5 */
+        case 0x36: /* 6 */
+        case 0x37: /* 7 */
+        case 0x38: /* 8 */
+        case 0x39: /* 9 */
+            r = bencode_string(ctx);
+            break;
+    }
+
+    if (r == BENCODE_STRING && keyptr) {
+        /* Enforce key ordering */
+        if (*keyptr) {
+            if (ctx->toklen < *keylenptr) {
+                if (memcmp(ctx->tok, *keyptr, ctx->toklen) <= 0)
+                    return BENCODE_ERROR_BAD_KEY;
+            } else if (*keylenptr < ctx->toklen ) {
+                if (memcmp(ctx->tok, *keyptr, *keylenptr) < 0)
+                    return BENCODE_ERROR_BAD_KEY;
+            } else {
+                if (memcmp(ctx->tok, *keyptr, ctx->toklen) <= 0)
+                    return BENCODE_ERROR_BAD_KEY;
+            }
+        }
+        *keyptr = (void *)ctx->tok;
+        *keylenptr = ctx->toklen;
+    }
+
+    return r;
+}
