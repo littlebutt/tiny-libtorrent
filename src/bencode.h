@@ -1,4 +1,6 @@
-/* Bencode decoder in ANSI C
+/* Copy from https://github.com/skeeto/bencode-c with modification.
+ *
+ * Bencode decoder in ANSI C
  *
  * This library only allocates a small stack, though it expects the
  * entire input at once up front. All returned pointers point into this

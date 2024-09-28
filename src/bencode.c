@@ -47,7 +47,7 @@ bencode_peek(struct bencode *ctx)
 {
     if (!ctx->buflen)
         return -1;
-    return *(unsigned char *)ctx->buf;;
+    return *(unsigned char *)ctx->buf;
 }
 
 static size_t
