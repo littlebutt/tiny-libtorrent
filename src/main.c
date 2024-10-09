@@ -3,8 +3,9 @@
 #include "torrent.h"
 
 int main() {
-    torrent *tor = NULL;
-    torrent_new(&tor);
-    int res = torrent_parse(tor, "test.torrent");
-    return res;
+    torrent *tor = torrent_new();
+    torrent_parse(tor, "test.torrent");
+    torrent_hash *torh = torrent_hash_new();
+    torrent_hash_hash(torh, tor);
+    return 0;
 }
