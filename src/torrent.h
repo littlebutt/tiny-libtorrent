@@ -26,9 +26,13 @@ typedef struct
 
 torrent * torrent_new();
 
+void torrent_free(torrent *tor);
+
 int torrent_parse(torrent *tor, const char *filename);
 
 torrent_hash * torrent_hash_new();
+
+void torrent_hash_free(torrent_hash *torh);
 
 int torrent_hash_hash(torrent_hash *torh, torrent *tor);
 

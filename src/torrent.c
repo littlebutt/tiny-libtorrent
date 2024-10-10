@@ -7,6 +7,11 @@ torrent * torrent_new()
     return tor;
 }
 
+void torrent_free(torrent *tor)
+{
+	free(tor);
+}
+
 size_t _torrent_fsize(FILE *fp)
 {
     fseek(fp, 0, SEEK_END);
@@ -157,6 +162,11 @@ torrent_hash * torrent_hash_new()
 {
     torrent_hash *torh = (torrent_hash *)malloc(sizeof(torrent_hash));
     return torh;
+}
+
+void torrent_hash_free(torrent_hash *torh)
+{
+	free(torh);
 }
 
 int _torrent_hash_marshal_info(char **info, torrent *tor)
