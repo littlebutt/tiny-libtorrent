@@ -9,6 +9,9 @@ torrent * torrent_new()
 
 void torrent_free(torrent *tor)
 {
+	free(tor->announce);
+	free(tor->info_pieces);
+	free(tor->info_name);
 	free(tor);
 }
 
@@ -166,6 +169,12 @@ torrent_hash * torrent_hash_new()
 
 void torrent_hash_free(torrent_hash *torh)
 {
+	free(torh->info_hash);
+	for (int i=0; i<20; ++i)
+	{
+		free(torh->pieces_hashes[i]);	
+	}
+	free(torh->pieces_hashes);
 	free(torh);
 }
 
