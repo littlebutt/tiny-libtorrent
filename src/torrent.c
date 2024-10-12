@@ -95,7 +95,7 @@ int _torrent_decode(torrent **tor, const char *buf, size_t buflen)
                         }
                         memcpy(value, key, ctx->toklen * sizeof(char));
                         (*tor)->info_pieces = value;
-                        (*tor)->info_piece_length = ctx->toklen;
+                        (*tor)->_info_pieces_length = ctx->toklen;
                         flag = 1;
                         free(key);
                         break;
@@ -170,10 +170,6 @@ torrent_hash * torrent_hash_new()
 void torrent_hash_free(torrent_hash *torh)
 {
 	free(torh->info_hash);
-	for (int i=0; i<20; ++i)
-	{
-		free(torh->pieces_hashes[i]);	
-	}
 	free(torh->pieces_hashes);
 	free(torh);
 }
@@ -187,7 +183,7 @@ int _torrent_hash_marshal_info(char **info, torrent *tor)
     {
         goto ERROR;
     }
-    sprintf(pieces, "6:pieces%lld:%s", sizeof(tor->info_pieces), tor->info_pieces);
+    sprintf(pieces, "6:pieces%lld:%s", tor->_info_pieces_length, tor->info_pieces);
     piece_length = (char *)malloc(sizeof(char) * 512);
     if (piece_length == NULL)
     {
@@ -205,8 +201,8 @@ int _torrent_hash_marshal_info(char **info, torrent *tor)
     {
         goto ERROR;
     }
-    sprintf(name, "4:name%lld:%s", sizeof(tor->info_name), tor->info_name);
-    sprintf(*info, "d%s%s%s%se", pieces, piece_length, length, name);
+    sprintf(name, "4:name%lld:%s", strlen(tor->info_name), tor->info_name);
+    sprintf(*info, "d%s%s%s%se", length, name, piece_length, pieces);
 #ifdef DEBUG
     printf("marshaled info:%s\n", *info);
 #endif
@@ -222,21 +218,6 @@ int _torrent_hash_hash_info(char *hashed_info, char *info)
     size_t info_len = strlen(info);
     SHA1Update(&ctx, (const unsigned char*)info, info_len);
     SHA1Final((unsigned char *)hashed_info, &ctx);
-    hashed_info[20] = '\0';
-    return 1;
-}
-
-int _torrent_hash_pieces_hash(char ***pieces_hashes, torrent *tor)
-{
-    size_t hash_length = 20;
-    int hash_num = strlen(tor->info_pieces) / hash_length;
-    *pieces_hashes = (char **)malloc(sizeof(char *) * hash_num);
-    for (int i = 0; i < hash_num; ++i)
-    {
-        (*pieces_hashes)[i] = (char *)malloc(sizeof(char) * hash_length);
-
-        strncpy((*pieces_hashes)[i], tor->info_pieces + i * hash_length, hash_length);
-    }
     return 1;
 }
 
@@ -244,17 +225,15 @@ int torrent_hash_hash(torrent_hash *torh, torrent *tor)
 {
     assert(tor);
     char *info = NULL;
-    char hashed_info[21];
-    char **pieces_hashes;
+    char hashed_info[20];
+    char *pieces_hashes;
     info = (char *)malloc(sizeof(char) * tor->info_length * 2);
-    _torrent_hash_marshal_info(&info, tor);
+    _torrent_hash_marshal_info(&info, tor); 
     _torrent_hash_hash_info(hashed_info, info);
     torh->info_hash = hashed_info;
-    _torrent_hash_pieces_hash(&pieces_hashes, tor);
+
+    pieces_hashes = (char *)malloc(tor->info_piece_length * sizeof(char));
+    strncpy(pieces_hashes, tor->info_pieces, tor->info_piece_length);
     torh->pieces_hashes = pieces_hashes;
-#ifdef DEBUG
-    printf("torrent_hash->info_hash:%s\n", torh->info_hash);
-    printf("torrent_hash->pieces_hashes[0]:%s\n", torh->pieces_hashes[0]);
-#endif
     return 1;
 }

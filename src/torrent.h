@@ -7,11 +7,13 @@
 #include <assert.h>
 #include "bencode.h"
 #include "sha1.h"
+#include "utils.h"
 
 typedef struct
 {
     char *announce;
     char *info_pieces;
+    size_t _info_pieces_length; // Real size of `pieces`
     size_t info_piece_length;
     size_t info_length;
     char *info_name;
@@ -21,7 +23,7 @@ typedef struct
 typedef struct
 {
     char *info_hash;
-    char **pieces_hashes;
+    char *pieces_hashes;
 } torrent_hash;
 
 torrent * torrent_new();
