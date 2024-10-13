@@ -1,6 +1,6 @@
 /*
  * Copy from https://github.com/clibs/sha1
-*/
+ */
 #ifndef SHA1_H
 #define SHA1_H
 
