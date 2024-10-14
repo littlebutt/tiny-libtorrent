@@ -21,6 +21,17 @@ void _cleanup_sockets()
 #endif
 }
 
+char * _mangle_url(const char *url)
+{
+    const char *prefix = "http://";
+    char *res = strdup(url);
+    if (strncmp(url, prefix, strlen(prefix)) == 0)
+    {
+        res += strlen(prefix);
+    }
+    return res;
+}
+
 char * _build_message(const char *hostname, const char *path, const char *params)
 {
     char *message = (char *)malloc(sizeof(char) * 8192);
@@ -145,6 +156,8 @@ int http_get(const char *url, char **recvs)
     }
     printf("[http] Socket created.\n");
 
+    url = _mangle_url(url);
+
     res = _parse_url(url, &hostname, &port, &path, &params);
     if (!res)
     {
@@ -243,4 +256,60 @@ int http_get(const char *url, char **recvs)
     _cleanup_sockets();
     free(message);
     return 1;
+}
+
+
+int _is_url_safe(unsigned char ch)
+{
+    return (ch >= 'a' && ch <= 'z') ||
+           (ch >= 'A' && ch <= 'Z') ||
+           (ch >= '0' && ch <= '9') ||
+           (ch == '-') || (ch == '_') || (ch == '.') || (ch == '~');
+}
+
+
+void _byte_to_hex(unsigned char byte, char *output)
+{
+    sprintf(output, "%02x", byte);
+}
+
+char * http_url_encode(const char *url)
+{
+    size_t output_length = 0;
+    for (size_t i = 0; i < strlen(url); i++)
+    {
+        if (_is_url_safe(url[i]))
+        {
+            output_length++;
+        }
+        else
+        {
+            output_length += 3;
+        }
+    }
+
+    char *output = (char *)malloc(output_length + 1);
+    if (!output) {
+        return NULL;
+    }
+
+    size_t j = 0;
+    for (size_t i = 0; i < strlen(url); i++)
+    {
+        if (_is_url_safe(url[i]))
+        {
+            output[j++] = url[i];
+        }
+        else
+        {
+            output[j++] = '%';
+            char hex[3];
+            _byte_to_hex(url[i], hex);
+            output[j++] = hex[0];
+            output[j++] = hex[1];
+        }
+    }
+
+    output[j] = '\0';
+    return output;
 }

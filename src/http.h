@@ -18,4 +18,8 @@
 
 int http_get(const char *url, char **recvs);
 
+
+char * http_url_encode(const char *url);
+
+
 #endif // HTTP_H

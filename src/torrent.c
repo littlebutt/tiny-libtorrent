@@ -231,6 +231,7 @@ int torrent_hash_hash(torrent_hash *torh, torrent *tor)
     _torrent_hash_marshal_info(&info, tor); 
     _torrent_hash_hash_info(hashed_info, info);
     torh->info_hash = hashed_info;
+    // "\x1bЈ\xee\x91f\xa0b\xcfJ\xf0\x9c\xf9\x97 \xfan\x1a13"
 
     pieces_hashes = (char *)malloc(tor->info_piece_length * sizeof(char));
     strncpy(pieces_hashes, tor->info_pieces, tor->info_piece_length);
