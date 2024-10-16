@@ -39,7 +39,7 @@ int _torrent_fopen(const char *filename, char **content)
     fread(buf, fsize + 1, sizeof(char), fp);
     buf[fsize] = '\0';
     *content = (char *)malloc((fsize + 1) * sizeof(char));
-    strncpy(*content, buf, (fsize + 1) * sizeof(char));
+    memcpy(*content, buf, (fsize + 1) * sizeof(char));
     return fsize + 1;
 }
 
@@ -137,6 +137,8 @@ int _torrent_decode(torrent **tor, const char *buf, size_t buflen)
             }
         }
     }
+    // FIXME: The ``res`` ends with -1 (BENCODE_ERROR_INVALID) but the data we
+    // need is all parsed correctly.
     bencode_free(ctx);
     return res;
 }
@@ -156,8 +158,8 @@ int torrent_parse(torrent *tor, const char *filename)
     printf("torrent->info_name: %s\n", tor->info_name);
     printf("torrent->info_piece_length: %lld\n", tor->info_piece_length);
     printf("torrent->info_length: %lld\n", tor->info_length);
-    printf("torrent->info_pieces: %s\n", tor->info_pieces);
-#endif
+    dbg_bin("torrent->info_pieces", tor->info_pieces, tor->_info_pieces_length);
+#endif // DEBUG
     return 1;
 }
 
@@ -205,7 +207,7 @@ int _torrent_hash_marshal_info(char **info, torrent *tor)
     sprintf(*info, "d%s%s%s%se", length, name, piece_length, pieces);
 #ifdef DEBUG
     printf("marshaled info:%s\n", *info);
-#endif
+#endif // DEBUG
     return 1;
 ERROR:
     return 0;
@@ -231,8 +233,9 @@ int torrent_hash_hash(torrent_hash *torh, torrent *tor)
     _torrent_hash_marshal_info(&info, tor); 
     _torrent_hash_hash_info(hashed_info, info);
     torh->info_hash = hashed_info;
-    // "\x1bЈ\xee\x91f\xa0b\xcfJ\xf0\x9c\xf9\x97 \xfan\x1a13"
-
+#ifdef DEBUG
+    dbg_bin("hashed_info", hashed_info, 20);
+#endif // DEBUG
     pieces_hashes = (char *)malloc(tor->info_piece_length * sizeof(char));
     strncpy(pieces_hashes, tor->info_pieces, tor->info_piece_length);
     torh->pieces_hashes = pieces_hashes;
