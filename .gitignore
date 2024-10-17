@@ -54,3 +54,7 @@ dkms.conf
 # IDE and editors
 
 .vscode/
+
+# For debug
+
+*.txt
