@@ -1,5 +1,4 @@
 #include "torrent.h"
-#define DEBUG
 
 torrent * torrent_new()
 {
@@ -158,7 +157,7 @@ int torrent_parse(torrent *tor, const char *filename)
     printf("torrent->info_name: %s\n", tor->info_name);
     printf("torrent->info_piece_length: %lld\n", tor->info_piece_length);
     printf("torrent->info_length: %lld\n", tor->info_length);
-    // dbg_bin("torrent->info_pieces", tor->info_pieces, tor->_info_pieces_length);
+    dbg_bin("torrent->info_pieces", tor->info_pieces, tor->_info_pieces_length);
 #endif // DEBUG
     return 1;
 }
@@ -176,7 +175,7 @@ void torrent_hash_free(torrent_hash *torh)
 	free(torh);
 }
 
-int _torrent_hash_marshal_info(char **info, torrent *tor)
+size_t _torrent_hash_marshal_info(char **info, torrent *tor)
 {
     char *pieces, *piece_length, *length, *name;
     char *_pieces_part0 = (char *)malloc(sizeof(char) * 20);
@@ -239,17 +238,16 @@ int _torrent_hash_marshal_info(char **info, torrent *tor)
 #ifdef DEBUG
     dbg_bin("marshaled info", *info, infolen);
 #endif // DEBUG
-    return (int)infolen;
+    return infolen;
 ERROR:
     return 0;
 }
 
-int _torrent_hash_hash_info(char *hashed_info, char *info)
+int _torrent_hash_hash_info(char *hashed_info, char *info, size_t infolen)
 {
     SHA1_CTX ctx;
     SHA1Init(&ctx);
-    size_t info_len = strlen(info);
-    SHA1Update(&ctx, (const unsigned char*)info, info_len);
+    SHA1Update(&ctx, (const unsigned char*)info, infolen);
     SHA1Final((unsigned char *)hashed_info, &ctx);
     return 1;
 }
@@ -260,8 +258,8 @@ int torrent_hash_hash(torrent_hash *torh, torrent *tor)
     char *info = NULL;
     char hashed_info[20] = {0};
     char *pieces_hashes;
-    int infolen = _torrent_hash_marshal_info(&info, tor); 
-    _torrent_hash_hash_info(hashed_info, info);
+    size_t infolen = _torrent_hash_marshal_info(&info, tor); 
+    _torrent_hash_hash_info(hashed_info, info, infolen);
     torh->info_hash = hashed_info;
 #ifdef DEBUG
     dbg_bin("hashed_info", hashed_info, 20);
