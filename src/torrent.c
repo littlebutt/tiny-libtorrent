@@ -211,25 +211,29 @@ size_t _torrent_hash_marshal_info(char **info, torrent *tor)
         goto ERROR;
     }
     sprintf(name, "4:name%lld:%s", strlen(tor->info_name), tor->info_name);
+    size_t length_len = strlen(length);
+    size_t name_len = strlen(name);
+    size_t piece_length_len = strlen(piece_length);
+    size_t pieces_len = (tor->_info_pieces_length) + strlen(_pieces_part0);
     size_t infolen = sizeof(char) * (2 +
-        strlen(length) + strlen(name) + strlen(piece_length) +
-        (tor->_info_pieces_length) + strlen(_pieces_part0));
+        length_len + name_len + piece_length_len +
+        pieces_len);
     *info = (char *)malloc(infolen);
     memset(*info, 0, 2 +
-        strlen(length) + strlen(name) + strlen(piece_length) +
-        (tor->_info_pieces_length) + strlen(_pieces_part0));
+        length_len + name_len + piece_length_len +
+        pieces_len);
     memcpy(*info, "d", 1);
-    memcpy(*info + 1, length, strlen(length));
+    memcpy(*info + 1, length, length_len);
     memcpy(*info + 1
-        + strlen(length), name, strlen(name));
+        + length_len, name, name_len);
     memcpy(*info + 1
-        + strlen(length) + strlen(name), piece_length, strlen(piece_length));
+        + length_len + name_len, piece_length, piece_length_len);
     memcpy(*info + 1
-        + strlen(length) + strlen(name) + strlen(piece_length), pieces,
-        (tor->_info_pieces_length) + strlen(_pieces_part0));
+        + length_len + name_len + piece_length_len, pieces,
+        pieces_len);
     memcpy(*info + 1 +
-        strlen(length) + strlen(name) + strlen(piece_length) +
-        (tor->_info_pieces_length) + strlen(_pieces_part0), "e", 1);
+        length_len + name_len + piece_length_len +
+        pieces_len, "e", 1);
     free(_pieces_part0);
     free(length);
     free(name);
