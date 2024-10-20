@@ -313,3 +313,36 @@ char * http_url_encode(const char *url)
     output[j] = '\0';
     return output;
 }
+
+char * http_response_header(const char *recvs, const char *header)
+{
+    char *recvs_copy = strdup(recvs);
+    char *line = strtok(recvs_copy, "\r\n");
+    while (line != NULL) {
+        if (strncmp(line, header, strlen(header)) == 0)
+        {
+            char *p = strdup(line);
+            free(recvs_copy);
+            return p + strlen(header) + 2;
+        }
+        line = strtok(NULL, "\r\n");
+    }
+    free(recvs_copy);
+    return NULL;
+}
+
+char * http_response_body(const char *recvs, size_t content_length)
+{
+    char *start = strstr(recvs, "\r\n\r\n");
+    if (start != NULL)
+    {
+        char *body = (char *)malloc(sizeof(char) * content_length);
+        if (body == NULL)
+        {
+            return NULL;
+        }
+        memcpy(body, start + 4, content_length);
+        return body;
+    }
+    return NULL;
+}

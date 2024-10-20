@@ -22,4 +22,9 @@ int http_get(const char *url, char **recvs);
 char * http_url_encode(const char *url);
 
 
+char * http_response_header(const char *recvs, const char *header);
+
+char * http_response_body(const char *recvs, size_t content_length);
+
+
 #endif // HTTP_H
