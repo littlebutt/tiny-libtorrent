@@ -10,7 +10,7 @@ int main() {
     // gcc -g -Wall -O0 bencode.c torrent.c sha1.c main.c utils.c http.c -lws2_32
     // char * recv = NULL;
 
-    app *a = app_new("test.torrent");
+    app *a = app_new("..\\test.torrent");
     app_download(a, NULL);
 
     return 0;

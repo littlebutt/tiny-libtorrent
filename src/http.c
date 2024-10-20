@@ -8,7 +8,7 @@ void _init_sockets()
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
     {
         printf("[http] Failed. Error Code: %d\n", WSAGetLastError());
-        exit(1);
+        return;
     }
     printf("[http] Winsock initialized.\n");
 #endif
@@ -17,7 +17,7 @@ void _init_sockets()
 void _cleanup_sockets()
 {
 #ifdef _WIN32
-    WSACleanup();
+    // WSACleanup();
 #endif
 }
 
@@ -252,9 +252,8 @@ int http_get(const char *url, char **recvs)
 #else
     close(sock);
 #endif
-
-    _cleanup_sockets();
     free(message);
+    _cleanup_sockets();
     return 1;
 }
 
@@ -273,10 +272,10 @@ void _byte_to_hex(unsigned char byte, char *output)
     sprintf(output, "%02x", byte);
 }
 
-char * http_url_encode(const char *url)
+char * http_url_encode(const char *url, int urllen)
 {
     size_t output_length = 0;
-    for (size_t i = 0; i < strlen(url); i++)
+    for (size_t i = 0; i < urllen; i++)
     {
         if (_is_url_safe(url[i]))
         {
@@ -294,7 +293,7 @@ char * http_url_encode(const char *url)
     }
 
     size_t j = 0;
-    for (size_t i = 0; i < strlen(url); i++)
+    for (size_t i = 0; i < urllen; i++)
     {
         if (_is_url_safe(url[i]))
         {

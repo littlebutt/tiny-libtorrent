@@ -1,5 +1,13 @@
 #ifndef PEERS_H
 #define PEERS_H
+
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdint.h>
+#include "bencode.h"
+#include "tcp.h"
+
 struct _peer
 {
     char *ip;
@@ -10,7 +18,13 @@ struct _peer
 typedef struct _peer peer;
 
 
-int make_peers(peer *p, const char *data);
+int peer_init(peer **p, const char *buf, size_t buflen);
+
+
+void peer_free(peer *p);
+
+
+int peer_handshake(peer *p, const char *info_hash, const char *peerid);
 
 
 #endif // PEERS_H

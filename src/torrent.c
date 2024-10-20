@@ -186,6 +186,10 @@ size_t _torrent_hash_marshal_info(char **info, torrent *tor)
     memset(_pieces_part0, 0, 20);
     sprintf(_pieces_part0, "6:pieces%lld:", tor->_info_pieces_length);
     pieces = (char *)malloc(sizeof(char) * ((tor->_info_pieces_length) + strlen(_pieces_part0)));
+    if (pieces == NULL)
+    {
+        goto ERROR;
+    }
     memset(pieces, 0, (tor->_info_pieces_length) + strlen(_pieces_part0));
     if (pieces == NULL)
     {
@@ -260,9 +264,9 @@ int torrent_hash_hash(torrent_hash *torh, torrent *tor)
 {
     assert(tor);
     char *info = NULL;
-    char hashed_info[20] = {0};
-    char *pieces_hashes;
-    size_t infolen = _torrent_hash_marshal_info(&info, tor); 
+    char *hashed_info, *pieces_hashes;
+    size_t infolen = _torrent_hash_marshal_info(&info, tor);
+    hashed_info = (char *)malloc(sizeof(char) * 20);
     _torrent_hash_hash_info(hashed_info, info, infolen);
     torh->info_hash = hashed_info;
 #ifdef DEBUG
