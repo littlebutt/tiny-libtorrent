@@ -73,21 +73,36 @@ int tcp_send(int sock, const char *msg, size_t msglen, char **recvs)
 
     size_t buflen = 1024;
     char *buf = (char *)malloc(buflen);
-    int bufsize;
-    if ((bufsize = recv(sock, buf, buflen, 0)) < 0)
+    if (buf == NULL)
     {
+        return 0;
+    }
+    memset(buf, 0, buflen);
+    int bufsize;
+    while ((bufsize = recv(sock, buf, buflen, 0)) != 0)
+    {
+        if (bufsize < 0)
+        {
 #ifdef _WIN32
         printf("[tcp] Fail to recv message from peer: %d", WSAGetLastError());
 #else
         printf("[tcp] Fail to recv message from peer: %d", errno);
 #endif
-        // buflen = buflen << 1;
-        // buf = (char *)realloc(buf, buflen);
-        // if (buf == NULL)
-        // {
-        //     return 0;
-        // }
-        return 0;
+            return 0;
+        }
+        else if (bufsize < buflen)
+        {
+            break;
+        }
+        else
+        {
+            buflen = buflen << 1;
+            buf = (char *)realloc(buf, buflen);
+            if (buf == NULL)
+            {
+                return 0;
+            }
+        }
     }
     *recvs = buf;
     return bufsize;

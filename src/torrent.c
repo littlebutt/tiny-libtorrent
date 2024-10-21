@@ -273,7 +273,7 @@ int torrent_hash_hash(torrent_hash *torh, torrent *tor)
     dbg_bin("hashed_info", hashed_info, 20);
 #endif // DEBUG
     pieces_hashes = (char *)malloc(tor->info_piece_length * sizeof(char));
-    strncpy(pieces_hashes, tor->info_pieces, tor->info_piece_length);
+    memcpy(pieces_hashes, tor->info_pieces, tor->info_piece_length);
     torh->pieces_hashes = pieces_hashes;
     return 1;
 }
