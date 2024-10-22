@@ -2,7 +2,7 @@
 
 void dbg_bin(const char *label, const char *bin, size_t binlen)
 {
-    printf("[dbg] %s ", label);
+    printf("%s: ", label);
     for (size_t i = 0; i < binlen; ++i)
     {
         printf("\\x%02x", (unsigned char)bin[i]);

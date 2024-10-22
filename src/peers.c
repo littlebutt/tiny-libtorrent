@@ -143,7 +143,7 @@ char * _build_handshake(const char *info_hash, const char *peerid)
     return hs_msg;
 }
 
-char * _handshake(peer *p, const char *info_hash, const char *peerid)
+char * _handshake(peer *p, const char *info_hash, const char *peerid, int *socket)
 {
     int sock;
     char *handshake;
@@ -169,6 +169,7 @@ char * _handshake(peer *p, const char *info_hash, const char *peerid)
         printf("[peer] Fail to handshake with %s:%d\n", p->ip, p->port);
         return NULL;
     }
+    *socket = sock;
     return recv + 1 + pstrlen + 48;
 }
 
@@ -182,15 +183,35 @@ int _build_bitfield(char *buf, char **bitfield)
     return msglen - 5;
 }
 
+void _send_unchoke(int sock)
+{
+    char *recvs;
+    char * messagebuf = message_serialize(MSG_UNCHOKE, NULL, 0);
+    tcp_send(sock, messagebuf, 5, &recvs);
+    free(recvs);
+}
+
+void _send_interested(int sock)
+{
+    char *recvs;
+    char * messagebuf = message_serialize(MSG_INTERESTED, NULL, 0);
+    tcp_send(sock, messagebuf, 5, &recvs);
+    free(recvs);
+}
+
 int peer_download(peer *p, const char *info_hash, const char *peerid)
 {
     char *recv;
     char *bitfield;
-    if ((recv = _handshake(p, info_hash, peerid)) == NULL) // TODO
+    int bitfieldlen;
+    int sock;
+    if ((recv = _handshake(p, info_hash, peerid, &sock)) == NULL)
     {
         return 0;
     }
-    _build_bitfield(recv, &bitfield);
+    bitfieldlen = _build_bitfield(recv, &bitfield);
+    _send_unchoke(sock);
+    _send_interested(sock);
     return 0;
 
 

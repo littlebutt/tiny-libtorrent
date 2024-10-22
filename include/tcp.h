@@ -17,6 +17,7 @@
     #include <netinet/in.h>
 #endif
 
+#include "utils.h"
 
 int tcp_connect(const char *ip, int port);
 

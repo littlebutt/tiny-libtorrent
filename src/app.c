@@ -11,6 +11,7 @@ app * app_new(const char *filename)
     a->torh = torrent_hash_new();
     torrent_hash_hash(a->torh, a->tor);
     a->peerid = "-TR2940-k8hj0wgej6ch";
+    piecework_build(&a->pw, a->tor);
     return a;
 }
 
@@ -19,6 +20,7 @@ void app_free(app *a)
     torrent_free(a->tor);
     torrent_hash_free(a->torh);
     peer_free(a->p);
+    piecework_free(a->pw);
     free(a);
 }
 
@@ -55,6 +57,7 @@ int app_download(app *a, const char *dest)
     }
     body = http_response_body(recv, content_length);
     peer_init(&ph, body, content_length);
+    a->p = ph;
     peer *p = ph;
     while (p)
     {
