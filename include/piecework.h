@@ -17,4 +17,6 @@ int piecework_build(piecework **pw, const torrent *tor);
 
 void piecework_free(piecework *pw);
 
+int piecework_has_piece(char *bitfield, int bitfieldlen, int index);
+
 #endif

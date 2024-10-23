@@ -12,7 +12,6 @@ typedef struct
 {
     torrent *tor;
     torrent_hash *torh;
-    peer *p;
     piecework *pw;
     char *peerid;
 } app;

@@ -19,7 +19,6 @@ void app_free(app *a)
 {
     torrent_free(a->tor);
     torrent_hash_free(a->torh);
-    peer_free(a->p);
     piecework_free(a->pw);
     free(a);
 }
@@ -41,7 +40,6 @@ char * _build_url(app *a)
 
 int app_download(app *a, const char *dest)
 {
-    printf("%s", a->torh->info_hash);
     char *url = _build_url(a);
     char *recv, *body;
     size_t content_length;
@@ -57,11 +55,10 @@ int app_download(app *a, const char *dest)
     }
     body = http_response_body(recv, content_length);
     peer_init(&ph, body, content_length);
-    a->p = ph;
     peer *p = ph;
     while (p)
     {
-        peer_download(p, a->torh->info_hash, a->peerid);
+        peer_download(p, a->torh->info_hash, a->peerid, a->pw);
         p = p->next;
     }
     

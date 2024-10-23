@@ -76,7 +76,7 @@ int tcp_connect(const char *ip, int port)
 
     fd_set writefds;
     struct timeval timeout;
-    timeout.tv_sec = 5;
+    timeout.tv_sec = 3;
     timeout.tv_usec = 0;
 
     FD_ZERO(&writefds);

@@ -185,34 +185,136 @@ int _build_bitfield(char *buf, char **bitfield)
 
 void _send_unchoke(int sock)
 {
-    char *recvs;
+    char *recvs = NULL;
     char * messagebuf = message_serialize(MSG_UNCHOKE, NULL, 0);
     tcp_send(sock, messagebuf, 5, &recvs);
-    free(recvs);
+    if (recvs != NULL)
+    {
+        free(recvs);
+    }
 }
 
 void _send_interested(int sock)
 {
-    char *recvs;
+    char *recvs = NULL;
     char * messagebuf = message_serialize(MSG_INTERESTED, NULL, 0);
     tcp_send(sock, messagebuf, 5, &recvs);
-    free(recvs);
+    if (recvs != NULL)
+    {
+        free(recvs);
+    }
 }
 
-int peer_download(peer *p, const char *info_hash, const char *peerid)
+_peer_context * _peer_context_init(int sock, char *bitfield, int bitfieldlen, char *info_hash)
+{
+    _peer_context *ctx = (_peer_context *)malloc(sizeof(_peer_context));
+    ctx->sock = sock;
+    ctx->bitfield = bitfield;
+    ctx->bitfieldlen = bitfieldlen;
+    ctx->info_hash = info_hash;
+    ctx->choked = 1;
+    ctx->state = NULL;
+    return ctx;
+}
+
+_peer_state * _peer_state_init(int index, size_t buflen)
+{
+    _peer_state *state = (_peer_state *)malloc(sizeof(_peer_state));
+    state->index = index;
+    state->buflen = buflen;
+    state->requested = 0;
+    state->downloaded = 0;
+    state->backlog = 0;
+    return state;
+}
+
+int _peer_send_request(int sock, int32_t index, int32_t requested, int32_t block_size, char **recvs)
+{
+    char *payload = (char *)malloc(sizeof(char) * 12);
+    payload[0] = (index >> 24) & 0xff;
+    payload[1] = (index >> 16) & 0xff;
+    payload[2] = (index >> 8) & 0xff;
+    payload[3] = index & 0xff;
+    payload[4] = (requested >> 24) & 0xff;
+    payload[5] = (requested >> 16) & 0xff;
+    payload[6] = (requested >> 8) & 0xff;
+    payload[7] = requested & 0xff;
+    payload[8] = (block_size >> 24) & 0xff;
+    payload[9] = (block_size >> 16) & 0xff;
+    payload[10] = (block_size >> 8) & 0xff;
+    payload[11] = block_size & 0xff;
+    char *msg = message_serialize(MSG_REQUEST, payload, 12);
+    return tcp_send(sock, msg, 12 + 5, recvs);
+}
+
+int _peer_download(_peer_context *ctx, const piecework *pw)
+{
+    _peer_state *state = _peer_state_init(pw->index, pw->length);
+    ctx->state = state;
+
+    while (state->downloaded < pw->length)
+    {
+        char *reply;
+        size_t replylen = 0;
+        if (!ctx->choked)
+        {
+            while (state->backlog < 5 && state->requested < pw->length)
+            {
+                int block_size = 16384;
+                if (pw->length - state->requested < block_size)
+                {
+                    block_size = pw->length - state->requested;
+                }
+                char *recvs;
+                int recvslen;
+                recvslen = _peer_send_request(ctx->sock, pw->index, state->requested, block_size, &recvs);
+                state->backlog ++;
+				state->requested += block_size;
+                replylen += recvslen;
+                reply = (char *)realloc(reply, replylen);
+                if (reply == NULL)
+                {
+                    goto ERROR_RETURN;
+                }
+                memcpy(reply + replylen - recvslen, recvs, recvslen);
+            }
+            
+        }
+
+    }
+ERROR_RETURN:
+    free(state);
+    return 0;
+
+}
+
+int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw)
 {
     char *recv;
     char *bitfield;
     int bitfieldlen;
     int sock;
+    _peer_context *ctx;
     if ((recv = _handshake(p, info_hash, peerid, &sock)) == NULL)
     {
         return 0;
     }
     bitfieldlen = _build_bitfield(recv, &bitfield);
+    ctx = _peer_context_init(sock, bitfield, bitfieldlen, info_hash);
     _send_unchoke(sock);
     _send_interested(sock);
-    return 0;
+    piecework *ppw = pw;
+    while (ppw != NULL)
+    {
+        if (!piecework_has_piece(bitfield, bitfieldlen, ppw->index))
+        {
+            continue;
+        }
+        _peer_download(ctx, ppw);
 
+        ppw = ppw->next;
+    }
+    
+    return 0;
 
 }

@@ -53,3 +53,13 @@ void piecework_free(piecework *pw)
         free(pp);
     }
 }
+
+int piecework_has_piece(char *bitfield, int bitfieldlen, int index)
+{
+    int byteIndex = index / 8;
+	int offset = index % 8;
+	if (byteIndex < 0 || byteIndex >= bitfieldlen) {
+		return 0;
+	}
+	return bitfield[byteIndex] >> ((uint8_t)(7 - offset) & 1) != 0;
+}
