@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 
 #define MSG_CHOKE               0
@@ -26,6 +27,12 @@ char * message_serialize(const uint8_t id, const char *payload, const size_t pay
 
 
 message * message_deserialize(char *buf, int *msglen);
+
+
+int message_parse_have(message *msg, int msglen);
+
+
+int message_parse_piece(message *msg, int msglen, char **buf, int buflen, int index);
 
 
 #endif // MESSAGE_H

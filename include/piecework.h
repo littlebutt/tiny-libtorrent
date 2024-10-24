@@ -19,4 +19,6 @@ void piecework_free(piecework *pw);
 
 int piecework_has_piece(char *bitfield, int bitfieldlen, int index);
 
+int piecework_set_piece(char *bitfield, int bitfieldlen, int index);
+
 #endif

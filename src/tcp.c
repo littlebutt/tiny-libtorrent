@@ -206,5 +206,6 @@ int tcp_send(int sock, const char *msg, size_t msglen, char **recvs)
         }
     }
     *recvs = buf;
+    dbg_bin("[tcp] Recieved", buf, bufsize);
     return bufsize;
 }

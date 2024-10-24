@@ -183,26 +183,16 @@ int _build_bitfield(char *buf, char **bitfield)
     return msglen - 5;
 }
 
-void _send_unchoke(int sock)
+int _send_unchoke(int sock, char **recvs) 
 {
-    char *recvs = NULL;
     char * messagebuf = message_serialize(MSG_UNCHOKE, NULL, 0);
-    tcp_send(sock, messagebuf, 5, &recvs);
-    if (recvs != NULL)
-    {
-        free(recvs);
-    }
+    return tcp_send(sock, messagebuf, 5, recvs);
 }
 
-void _send_interested(int sock)
+int _send_interested(int sock, char **recvs)
 {
-    char *recvs = NULL;
     char * messagebuf = message_serialize(MSG_INTERESTED, NULL, 0);
-    tcp_send(sock, messagebuf, 5, &recvs);
-    if (recvs != NULL)
-    {
-        free(recvs);
-    }
+    return tcp_send(sock, messagebuf, 5, recvs);
 }
 
 _peer_context * _peer_context_init(int sock, char *bitfield, int bitfieldlen, char *info_hash)
@@ -228,6 +218,56 @@ _peer_state * _peer_state_init(int index, size_t buflen)
     return state;
 }
 
+int _read_message(char *buf, int buflen, _peer_context *ctx)
+{
+    int msglen;
+    message *msg;
+    if (buf == NULL)
+    {
+        return 1;
+    }
+    msg = message_deserialize(buf, &msglen);
+    if (msglen == 5)
+    {
+        return 0;
+    }
+    switch (msg->id)
+    {
+        case MSG_UNCHOKE:
+        {
+            ctx->choked = 0;
+            break;
+        }
+        case MSG_CHOKE:
+        {
+            ctx->choked = 1;
+            break;
+        }
+        case MSG_HAVE:
+        {
+            int index = message_parse_have(msg, msglen);
+            if (index == 0)
+            {
+                return 0;
+            }
+            piecework_set_piece(ctx->bitfield, ctx->bitfieldlen, index);
+            break;
+        }
+        case MSG_PIECE:
+        {
+            int n = message_parse_piece(msg, msglen, &(ctx->state->buf), ctx->state->buflen, ctx->state->index);
+            if (n == 0)
+            {
+                return 0;
+            }
+            ctx->state->downloaded += n;
+            ctx->state->backlog --;
+            break;
+        }
+    }
+    return 1;
+}
+
 int _peer_send_request(int sock, int32_t index, int32_t requested, int32_t block_size, char **recvs)
 {
     char *payload = (char *)malloc(sizeof(char) * 12);
@@ -247,15 +287,15 @@ int _peer_send_request(int sock, int32_t index, int32_t requested, int32_t block
     return tcp_send(sock, msg, 12 + 5, recvs);
 }
 
-int _peer_download(_peer_context *ctx, const piecework *pw)
+int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int buflen)
 {
     _peer_state *state = _peer_state_init(pw->index, pw->length);
     ctx->state = state;
+    char *reply = buf;
+    size_t replylen = buflen;
 
     while (state->downloaded < pw->length)
     {
-        char *reply;
-        size_t replylen = 0;
         if (!ctx->choked)
         {
             while (state->backlog < 5 && state->requested < pw->length)
@@ -281,7 +321,15 @@ int _peer_download(_peer_context *ctx, const piecework *pw)
             
         }
 
+        if (_read_message(reply, replylen, ctx) == 1) // TODO: FIX here
+        {
+            goto ERROR_RETURN;
+        }
+        reply += 5;
+        replylen -= 5;
+
     }
+    return 1;
 ERROR_RETURN:
     free(state);
     return 0;
@@ -301,18 +349,27 @@ int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw)
     }
     bitfieldlen = _build_bitfield(recv, &bitfield);
     ctx = _peer_context_init(sock, bitfield, bitfieldlen, info_hash);
-    _send_unchoke(sock);
-    _send_interested(sock);
-    piecework *ppw = pw;
-    while (ppw != NULL)
+
+    char *unchoke_recvs = NULL;
+    int unchoke_recvslen = 0;
+    unchoke_recvslen = _send_unchoke(sock, &unchoke_recvs);
+    char *interested_recvs = NULL;
+    int interested_recvslen = 0;
+    interested_recvslen = _send_interested(sock, &interested_recvs);
+    char *recv2 = (char *)malloc(sizeof(char) * (unchoke_recvslen + interested_recvslen));
+    memcpy(recv2, unchoke_recvs, unchoke_recvslen);
+    memcpy(recv2 + unchoke_recvslen, interested_recvs, interested_recvslen);
+    free(unchoke_recvs);
+    free(interested_recvs);
+    piecework *ppw;
+    for (ppw = pw; ppw != NULL; ppw = ppw->next)
     {
         if (!piecework_has_piece(bitfield, bitfieldlen, ppw->index))
         {
             continue;
         }
-        _peer_download(ctx, ppw);
+        _peer_download(ctx, ppw, recv2, unchoke_recvslen + interested_recvslen);
 
-        ppw = ppw->next;
     }
     
     return 0;
