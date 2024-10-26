@@ -21,6 +21,10 @@ char * message_serialize(const uint8_t id, const char *payload, const size_t pay
 message * message_deserialize(char *buf, int *msglen)
 {
     message *msg = (message *)malloc(sizeof(message));
+    if (msg == NULL)
+    {
+        return NULL;
+    }
     int32_t length = buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
     *msglen = length + 4;
     msg->id = (uint8_t)buf[4];
@@ -77,5 +81,6 @@ int message_parse_piece(message *msg, int msglen, char **buf, int buflen, int in
         return 0;
     }
     memcpy(*buf + begin, data, msglen - 8/*payload head*/ - 5/*message head*/);
+    // TODO: sf Recieved: \x00\x00\x40\x09\x07\x00\x00\x00\x00\x00\x00\xc0\x00
     return msglen - 13;
 }

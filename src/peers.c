@@ -220,14 +220,14 @@ _peer_state * _peer_state_init(int index, size_t buflen)
 
 int _read_message(char *buf, int buflen, _peer_context *ctx)
 {
-    int msglen;
+    int msglen = 0;
     message *msg;
-    if (buf == NULL)
+    if (buf == NULL || buflen < 0)
     {
-        return 1;
+        return 0;
     }
     msg = message_deserialize(buf, &msglen);
-    if (msglen == 5)
+    if (msg == NULL)
     {
         return 0;
     }
@@ -265,7 +265,7 @@ int _read_message(char *buf, int buflen, _peer_context *ctx)
             break;
         }
     }
-    return 1;
+    return msglen;
 }
 
 int _peer_send_request(int sock, int32_t index, int32_t requested, int32_t block_size, char **recvs)
@@ -292,7 +292,7 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
     _peer_state *state = _peer_state_init(pw->index, pw->length);
     ctx->state = state;
     char *reply = buf;
-    size_t replylen = buflen;
+    int replylen = buflen;
 
     while (state->downloaded < pw->length)
     {
@@ -311,7 +311,14 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
                 state->backlog ++;
 				state->requested += block_size;
                 replylen += recvslen;
-                reply = (char *)realloc(reply, replylen);
+                if (replylen == recvslen)
+                {
+                    reply = (char *)malloc(sizeof(char) * replylen);
+                }
+                else
+                {
+                    reply = (char *)realloc(reply, replylen);
+                }
                 if (reply == NULL)
                 {
                     goto ERROR_RETURN;
@@ -320,13 +327,13 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
             }
             
         }
-
-        if (_read_message(reply, replylen, ctx) == 1) // TODO: FIX here
+        int step;
+        if (!(step = _read_message(reply, replylen, ctx)))
         {
             goto ERROR_RETURN;
         }
-        reply += 5;
-        replylen -= 5;
+        reply += step;
+        replylen -= step;
 
     }
     return 1;
