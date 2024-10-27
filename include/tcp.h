@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -26,6 +27,9 @@ void tcp_close(int sock);
 
 
 int tcp_send(int sock, const char *msg, size_t msglen, char **recvs);
+
+
+int tcp_send_for_message(int sock, const char *msg, size_t msglen, char **recvs);
 
 
 #endif // TCP_H

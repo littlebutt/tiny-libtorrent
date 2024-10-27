@@ -59,19 +59,21 @@ int tcp_connect(const char *ip, int port)
 #ifdef _WIN32
         if (WSAGetLastError() != WSAEWOULDBLOCK)
         {
-            printf("[tcp] Connection failed");
+            printf("[tcp] Connection failed\n");
             printf(" %d\n", WSAGetLastError());
             closesocket(sock);
             WSACleanup();
+            return 0;
+        }
 #else
         if (errno != EINPROGRESS)
         {
-            printf("[tcp] Connection failed");
+            printf("[tcp] Connection failed\n");
             printf(" %d\n", errno);
             close(sock);
-#endif
             return 0;
         }
+#endif
     }
 
     fd_set writefds;
@@ -160,6 +162,7 @@ int tcp_send(int sock, const char *msg, size_t msglen, char **recvs)
             {
                 if (wait_for_socket(sock, 0, 5) > 0)
                 {
+                    // TODO: Opt here and remove recv
                     bufsize = recv(sock, buf, buflen, 0);
                     if (bufsize < buflen)
                     {
@@ -184,9 +187,9 @@ int tcp_send(int sock, const char *msg, size_t msglen, char **recvs)
             else
             {
 #ifdef _WIN32
-                printf("[tcp] Fail to recv message from peer: %d", WSAGetLastError());
+                printf("[tcp] Fail to recv message from peer: %d\n", WSAGetLastError());
 #else
-                printf("[tcp] Fail to recv message from peer: %d", errno);
+                printf("[tcp] Fail to recv message from peer: %d\n", errno);
 #endif
                 return 0;
             }
@@ -208,4 +211,98 @@ int tcp_send(int sock, const char *msg, size_t msglen, char **recvs)
     *recvs = buf;
     dbg_bin("[tcp] Recieved", buf, bufsize);
     return bufsize;
+}
+
+
+int _get_message_size(const char *buf)
+{
+    return (int32_t)(buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]) + 4;
+}
+
+
+int tcp_send_for_message(int sock, const char *msg, size_t msglen, char **recvs)
+{
+    send(sock, msg, msglen, 0);
+    dbg_bin("[tcp] Sent", msg, msglen);
+
+    size_t buflen = 1024;
+    char *buf = (char *)malloc(buflen);
+    if (buf == NULL)
+    {
+        return 0;
+    }
+    memset(buf, 0, buflen);
+    int msg_size = 0;
+    int total_received = 0;
+    while (1)
+    {
+        int bufsize = recv(sock, buf + total_received, buflen - total_received, 0);
+        
+        if (bufsize >= 0)
+        {
+            total_received += bufsize;
+            if (msg_size == 0 && total_received >= 4)
+            {
+                msg_size = _get_message_size(buf);
+                if (msg_size < 4)
+                {
+                    printf("[message] Poor format message received\n");
+                    free(buf);
+                    return 0;
+                }
+
+                if (msg_size > buflen)
+                {
+                    char *new_buf = realloc(buf, msg_size);
+                    if (new_buf == NULL)
+                    {
+                        printf("[tcp] Realloc failed\n");
+                        free(buf);
+                        return 0;
+                    }
+                    buf = new_buf;
+                    buflen = msg_size;
+                }
+            }
+
+            if (total_received >= msg_size) {
+                break;
+            }
+        }
+        else if (bufsize == 0)
+        {
+            break;
+        }
+        else
+        {
+#ifdef _WIN32
+            if (WSAGetLastError() == WSAEWOULDBLOCK)
+#else
+            if (errno == EWOULDBLOCK)
+#endif
+            {
+                if (wait_for_socket(sock, 0, 5) <= 0)
+                {
+                    printf("[tcp] Receive timeout\n");
+                    free(buf);
+                    return 0;
+                }
+            }
+            else
+            {
+#ifdef _WIN32
+                printf("[tcp] Fail to recv message from peer: %d\n", WSAGetLastError());
+#else
+                printf("[tcp] Fail to recv message from peer: %d\n", errno);
+#endif
+                free(buf);
+                return 0;
+            }
+        }
+    }
+
+    *recvs = buf;
+    dbg_bin("[tcp] Recieved", buf, total_received);
+
+    return total_received;
 }

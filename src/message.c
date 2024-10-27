@@ -52,6 +52,7 @@ int message_parse_piece(message *msg, int msglen, char **buf, int buflen, int in
 {
     int parsed_index, begin;
     char *data;
+    int data_size;
     if (msg->id != MSG_PIECE)
     {
         printf("[message] Expected id 7, but got id: %d", msg->id);
@@ -74,13 +75,20 @@ int message_parse_piece(message *msg, int msglen, char **buf, int buflen, int in
         printf("[message] Begin offset is too high: %d > %d", begin, buflen);
         return 0;
     }
-    data = msg->payload + 8;
+    data_size = msglen - 8/*payload head*/ - 5/*message head*/;
+    data = (char *)malloc(data_size);
+    memcpy(data, msg->payload + 8, data_size);
     if (msglen - 13 + begin > buflen)
     {
         printf("[message] Data is too long for offset %d with length %d", begin, buflen);
         return 0;
     }
-    memcpy(*buf + begin, data, msglen - 8/*payload head*/ - 5/*message head*/);
-    // TODO: sf Recieved: \x00\x00\x40\x09\x07\x00\x00\x00\x00\x00\x00\xc0\x00
+    if (data == NULL)
+    {
+        printf("[message] Poor format of PIECE message");
+        return 0;
+    }
+    memcpy(*buf + begin, data, data_size);
+    free(data);
     return msglen - 13;
 }

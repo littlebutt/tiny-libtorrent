@@ -186,13 +186,13 @@ int _build_bitfield(char *buf, char **bitfield)
 int _send_unchoke(int sock, char **recvs) 
 {
     char * messagebuf = message_serialize(MSG_UNCHOKE, NULL, 0);
-    return tcp_send(sock, messagebuf, 5, recvs);
+    return tcp_send_for_message(sock, messagebuf, 5, recvs);
 }
 
 int _send_interested(int sock, char **recvs)
 {
     char * messagebuf = message_serialize(MSG_INTERESTED, NULL, 0);
-    return tcp_send(sock, messagebuf, 5, recvs);
+    return tcp_send_for_message(sock, messagebuf, 5, recvs);
 }
 
 _peer_context * _peer_context_init(int sock, char *bitfield, int bitfieldlen, char *info_hash)
@@ -212,6 +212,7 @@ _peer_state * _peer_state_init(int index, size_t buflen)
     _peer_state *state = (_peer_state *)malloc(sizeof(_peer_state));
     state->index = index;
     state->buflen = buflen;
+    state->buf = (char *)malloc(buflen);
     state->requested = 0;
     state->downloaded = 0;
     state->backlog = 0;
@@ -222,7 +223,7 @@ int _read_message(char *buf, int buflen, _peer_context *ctx)
 {
     int msglen = 0;
     message *msg;
-    if (buf == NULL || buflen < 0)
+    if (buf == NULL || buflen < 5)
     {
         return 0;
     }
@@ -284,15 +285,16 @@ int _peer_send_request(int sock, int32_t index, int32_t requested, int32_t block
     payload[10] = (block_size >> 8) & 0xff;
     payload[11] = block_size & 0xff;
     char *msg = message_serialize(MSG_REQUEST, payload, 12);
-    return tcp_send(sock, msg, 12 + 5, recvs);
+    return tcp_send_for_message(sock, msg, 12 + 5, recvs);
 }
 
 int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int buflen)
 {
     _peer_state *state = _peer_state_init(pw->index, pw->length);
     ctx->state = state;
-    char *reply = buf;
     int replylen = buflen;
+    char *reply = (char *)malloc(replylen);
+    memcpy(reply, buf, buflen);
 
     while (state->downloaded < pw->length)
     {
@@ -317,7 +319,9 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
                 }
                 else
                 {
-                    reply = (char *)realloc(reply, replylen);
+                    assert(reply != NULL);
+                    char *new_reply = (char *)realloc(reply, replylen); // FIXME: Unknown Signal after parse_piece
+                    reply = new_reply;
                 }
                 if (reply == NULL)
                 {
