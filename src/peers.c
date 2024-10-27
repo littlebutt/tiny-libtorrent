@@ -204,6 +204,7 @@ _peer_context * _peer_context_init(int sock, char *bitfield, int bitfieldlen, ch
     ctx->info_hash = info_hash;
     ctx->choked = 1;
     ctx->state = NULL;
+    ctx->io_flag = 1;
     return ctx;
 }
 
@@ -263,6 +264,7 @@ int _read_message(char *buf, int buflen, _peer_context *ctx)
             }
             ctx->state->downloaded += n;
             ctx->state->backlog --;
+            ctx->io_flag = 1;
             break;
         }
     }
@@ -313,14 +315,15 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
                 state->backlog ++;
 				state->requested += block_size;
                 replylen += recvslen;
-                if (replylen == recvslen)
+                if (ctx->io_flag == 1)
                 {
                     reply = (char *)malloc(sizeof(char) * replylen);
+                    ctx->io_flag = 0;
                 }
                 else
                 {
                     assert(reply != NULL);
-                    char *new_reply = (char *)realloc(reply, replylen); // FIXME: Unknown Signal after parse_piece
+                    char *new_reply = (char *)realloc(reply, replylen);
                     reply = new_reply;
                 }
                 if (reply == NULL)
@@ -332,7 +335,7 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
             
         }
         int step;
-        if (!(step = _read_message(reply, replylen, ctx)))
+        if ((step = _read_message(reply, replylen, ctx)) <= 0)
         {
             goto ERROR_RETURN;
         }
@@ -342,10 +345,29 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
     }
     return 1;
 ERROR_RETURN:
+    free(state->buf);
     free(state);
     return 0;
 
 }
+
+
+int _check_integrity(piecework *pw, _peer_context *ctx)
+{
+    assert(ctx->state != NULL);
+    char *hashed_buf;
+    SHA1_CTX sha1_ctx;
+    SHA1Init(&sha1_ctx);
+    SHA1Update(&sha1_ctx, (const unsigned char*)ctx->state->buf, ctx->state->buflen);
+    SHA1Final((unsigned char *)hashed_buf, &ctx);
+    if (!memcmp(hashed_buf, pw->hash, 20))
+    {
+        printf("[peer] Fail to check the integrity of piecework with index: %d", pw->index);
+        return 0;
+    }
+    return 1;
+}
+
 
 int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw)
 {
@@ -377,9 +399,14 @@ int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw)
     {
         if (!piecework_has_piece(bitfield, bitfieldlen, ppw->index))
         {
+            // TODO: piecework_append
             continue;
         }
-        _peer_download(ctx, ppw, recv2, unchoke_recvslen + interested_recvslen);
+        if (!_peer_download(ctx, ppw, recv2, unchoke_recvslen + interested_recvslen))
+        {
+            continue;
+        }
+        _check_integrity(ppw, ctx);
 
     }
     

@@ -9,6 +9,7 @@
 #include "tcp.h"
 #include "message.h"
 #include "piecework.h"
+#include "sha1.h"
 
 struct _peer
 {
@@ -39,6 +40,7 @@ typedef struct
     int bitfieldlen;
     char *info_hash;
     _peer_state *state;
+    int io_flag;
 }_peer_context;
 
 
