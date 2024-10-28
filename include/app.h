@@ -1,7 +1,6 @@
 #ifndef APP_H
 #define APP_H
 
-#define DEBUG
 
 #include "torrent.h"
 #include "http.h"

@@ -25,7 +25,7 @@ message * message_deserialize(char *buf, int *msglen)
     {
         return NULL;
     }
-    int32_t length = buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
+    uint32_t length = buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
     *msglen = length + 4;
     msg->id = (uint8_t)buf[4];
     msg->payload = buf + 5;
@@ -44,7 +44,7 @@ int message_parse_have(message *msg, int msglen)
         printf("[message] Expected message length 8, but got length: %d", msglen);
         return 0;
     }
-    int32_t index = msg->payload[0] << 24 | msg->payload[1] << 16 | msg->payload[2] << 8 | msg->payload[3];
+    uint32_t index = msg->payload[0] << 24 | msg->payload[1] << 16 | msg->payload[2] << 8 | msg->payload[3];
     return index;
 }
 

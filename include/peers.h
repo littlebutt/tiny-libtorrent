@@ -50,6 +50,6 @@ int peer_init(peer **p, const char *buf, size_t buflen);
 void peer_free(peer *p);
 
 
-int peer_download(peer *p, char *info_hash, const char *peerid, piecework* pw);
+int peer_download(peer *p, char *info_hash, const char *peerid, piecework* pw, int pwlen);
 
 #endif // PEERS_H

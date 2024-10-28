@@ -54,6 +54,33 @@ void piecework_free(piecework *pw)
     }
 }
 
+piecework * piecework_append(piecework *pw, piecework *node, piecework *prev)
+{
+    if (pw == NULL || node == NULL || node->next == NULL)
+    {
+        return pw;
+    }
+
+    if (pw == node)
+    {
+        pw = node->next;
+    }
+    else if (prev != NULL)
+    {
+        prev->next = node->next;
+    }
+
+    piecework *last = pw;
+    while (last->next != NULL) {
+        last = last->next;
+    }
+
+    last->next = node;
+    node->next = NULL;
+
+    return pw;
+}
+
 int piecework_has_piece(char *bitfield, int bitfieldlen, int index)
 {
     int byteIndex = index / 8;

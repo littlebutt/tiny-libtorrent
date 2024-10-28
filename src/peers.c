@@ -267,11 +267,16 @@ int _read_message(char *buf, int buflen, _peer_context *ctx)
             ctx->io_flag = 1;
             break;
         }
+        default:
+        {
+            ctx->io_flag = 1;
+            return 1; // Garbage bit stream
+        }
     }
     return msglen;
 }
 
-int _peer_send_request(int sock, int32_t index, int32_t requested, int32_t block_size, char **recvs)
+int _peer_send_request(int sock, uint32_t index, uint32_t requested, uint32_t block_size, char **recvs)
 {
     char *payload = (char *)malloc(sizeof(char) * 12);
     payload[0] = (index >> 24) & 0xff;
@@ -340,7 +345,7 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
             goto ERROR_RETURN;
         }
         reply += step;
-        replylen -= step;
+        replylen -= step != 1 ? step : replylen;
 
     }
     return 1;
@@ -355,11 +360,11 @@ ERROR_RETURN:
 int _check_integrity(piecework *pw, _peer_context *ctx)
 {
     assert(ctx->state != NULL);
-    char *hashed_buf;
+    char *hashed_buf = NULL;
     SHA1_CTX sha1_ctx;
     SHA1Init(&sha1_ctx);
     SHA1Update(&sha1_ctx, (const unsigned char*)ctx->state->buf, ctx->state->buflen);
-    SHA1Final((unsigned char *)hashed_buf, &ctx);
+    SHA1Final((unsigned char *)hashed_buf, &sha1_ctx);
     if (!memcmp(hashed_buf, pw->hash, 20))
     {
         printf("[peer] Fail to check the integrity of piecework with index: %d", pw->index);
@@ -369,7 +374,22 @@ int _check_integrity(piecework *pw, _peer_context *ctx)
 }
 
 
-int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw)
+void _send_have(int sock, uint32_t index)
+{
+    char *payload = (char *)malloc(4);
+    payload[0] = (index >> 24) & 0xff;
+    payload[1] = (index >> 16) & 0xff;
+    payload[2] = (index >> 8) & 0xff;
+    payload[3] = index & 0xff;
+    char *msg = message_serialize(MSG_HAVE, payload, 4);
+    char *recvs = NULL;
+    tcp_send(sock, msg, 9, &recvs);
+    free(recvs);
+    
+}
+
+
+int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw, int pwlen)
 {
     char *recv;
     char *bitfield;
@@ -394,22 +414,58 @@ int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw)
     memcpy(recv2 + unchoke_recvslen, interested_recvs, interested_recvslen);
     free(unchoke_recvs);
     free(interested_recvs);
-    piecework *ppw;
-    for (ppw = pw; ppw != NULL; ppw = ppw->next)
+    piecework *head = pw;
+    piecework *ppw = head;
+    piecework *prev = NULL;
+    int peer_try_times = pwlen;
+    for (; ppw != NULL;)
     {
+        piecework *next = ppw->next;
         if (!piecework_has_piece(bitfield, bitfieldlen, ppw->index))
         {
-            // TODO: piecework_append
+            printf("[peer] Peer %s:%d does not have piece #%d\n", p->ip, p->port, ppw->index);
+            peer_try_times --;
+            if (peer_try_times <= 0)
+            {
+                goto RETURN_DIRECTLY;
+            }
+            head = piecework_append(head, ppw, prev);
+            ppw = next;
             continue;
         }
         if (!_peer_download(ctx, ppw, recv2, unchoke_recvslen + interested_recvslen))
         {
+            printf("[peer] Fail to download piece from peer %s:%d for piece #%d\n", p->ip, p->port, ppw->index);
+            peer_try_times --;
+            if (peer_try_times <= 0)
+            {
+                goto RETURN_DIRECTLY;
+            }
+            head = piecework_append(head, ppw, prev);
+            ppw = next;
             continue;
         }
-        _check_integrity(ppw, ctx);
+        if (!_check_integrity(ppw, ctx))
+        {
+            printf("[peer] Fail to check the integrity of piece #%d\n", ppw->index);
+            peer_try_times --;
+            if (peer_try_times <= 0)
+            {
+                goto RETURN_DIRECTLY;
+            }
+            head = piecework_append(head, ppw, prev);
+            ppw = next;
+            continue;
+        }
+
+        _send_have(ctx->sock, ppw->index);
+        prev = ppw;
+        ppw = next;
 
     }
-    
+    return 1;
+RETURN_DIRECTLY: 
+    // Because the peer cannot provide/download the piecework we want
     return 0;
 
 }

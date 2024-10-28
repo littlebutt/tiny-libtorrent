@@ -58,7 +58,7 @@ int app_download(app *a, const char *dest)
     peer *p = ph;
     while (p)
     {
-        peer_download(p, a->torh->info_hash, a->peerid, a->pw);
+        peer_download(p, a->torh->info_hash, a->peerid, a->pw, a->tor->_info_pieces_length / 20);
         p = p->next;
     }
     
