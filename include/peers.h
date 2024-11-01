@@ -28,7 +28,6 @@ typedef struct
 
     int downloaded;
     int requested;
-    int backlog;
 }_peer_state;
 
 
@@ -44,12 +43,21 @@ typedef struct
 }_peer_context;
 
 
+typedef struct _peer_result
+{
+    int index;
+    char *buf;
+    size_t buflen;
+    struct _peer_result *next;
+}peer_result;
+
+
 int peer_init(peer **p, const char *buf, size_t buflen);
 
 
 void peer_free(peer *p);
 
 
-int peer_download(peer *p, char *info_hash, const char *peerid, piecework* pw, int pwlen);
+peer_result * peer_download(peer *p, char *info_hash, const char *peerid, piecework* pw, int pwlen);
 
 #endif // PEERS_H

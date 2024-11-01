@@ -16,7 +16,7 @@ void dbg_bin(const char *label, const char *bin, size_t binlen)
 #ifndef DEBUG
     if (binlen > 20)
     {
-        printf("...(%d more)", binlen - 20);
+        printf("...(%lld more)", binlen - 20);
     }
 #endif
     printf("\n");

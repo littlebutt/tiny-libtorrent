@@ -38,6 +38,26 @@ char * _build_url(app *a)
     return url;
 }
 
+int _integrate_peer_result(char **buf, peer_result *res, const torrent *tor)
+{
+    peer_result *pr = res;
+    *buf = (char *)malloc(tor->info_length);
+    memset(*buf, 0, tor->info_length);
+    if (buf == NULL)
+    {
+        return 0;
+    }
+    for (int i = 0; i < tor->_info_pieces_length / 20; i++)
+    {
+        int begin = pr->index * tor->info_piece_length;
+        int end = begin + tor->info_piece_length > tor->info_length ? tor->info_length : begin + tor->info_piece_length;
+        memcpy(*buf + begin, res->buf, end - begin);
+
+        printf("[app] Downloaded piece #%d - %0.2f%%", res->index, (float)i / (tor->_info_pieces_length / 20));
+    }
+    return 1;
+}
+
 int app_download(app *a, const char *dest)
 {
     char *url = _build_url(a);
@@ -56,11 +76,27 @@ int app_download(app *a, const char *dest)
     body = http_response_body(recv, content_length);
     peer_init(&ph, body, content_length);
     peer *p = ph;
+    peer_result *result = NULL;
     while (p)
     {
-        peer_download(p, a->torh->info_hash, a->peerid, a->pw, a->tor->_info_pieces_length / 20);
+        peer_result *res = peer_download(p, a->torh->info_hash, a->peerid, a->pw, a->tor->_info_pieces_length / 20);
+        if (result == NULL)
+        {
+            result = res;
+        }
+        else
+        {
+            peer_result *pr = result;
+            while (pr->next != NULL)
+            {
+                pr = pr->next;
+            }
+            pr->next = res;
+        }
         p = p->next;
     }
+    char *buf = NULL;
+    _integrate_peer_result(&buf, result, a->tor);
     
     return 0;
   }

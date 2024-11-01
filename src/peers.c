@@ -170,6 +170,7 @@ char * _handshake(peer *p, const char *info_hash, const char *peerid, int *socke
         return NULL;
     }
     *socket = sock;
+    free(handshake);
     return recv + 1 + pstrlen + 48;
 }
 
@@ -216,7 +217,6 @@ _peer_state * _peer_state_init(int index, size_t buflen)
     state->buf = (char *)malloc(buflen);
     state->requested = 0;
     state->downloaded = 0;
-    state->backlog = 0;
     return state;
 }
 
@@ -262,15 +262,14 @@ int _read_message(char *buf, int buflen, _peer_context *ctx)
             {
                 return 0;
             }
-            ctx->state->downloaded += n;
-            ctx->state->backlog --;
+            ctx->state->downloaded += n; // TODO: Segment Fault. It seems like `ctx` was freed.
             ctx->io_flag = 1;
             break;
         }
         default:
         {
             ctx->io_flag = 1;
-            return 1; // Garbage bit stream
+            return 0; // Garbage bit stream
         }
     }
     return msglen;
@@ -307,7 +306,7 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
     {
         if (!ctx->choked)
         {
-            while (state->backlog < 5 && state->requested < pw->length)
+            while (state->requested < pw->length)
             {
                 int block_size = 16384;
                 if (pw->length - state->requested < block_size)
@@ -317,7 +316,6 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
                 char *recvs;
                 int recvslen;
                 recvslen = _peer_send_request(ctx->sock, pw->index, state->requested, block_size, &recvs);
-                state->backlog ++;
 				state->requested += block_size;
                 replylen += recvslen;
                 if (ctx->io_flag == 1)
@@ -339,14 +337,17 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
             }
             
         }
-        int step;
-        if ((step = _read_message(reply, replylen, ctx)) <= 0)
+        while (replylen > 0)
         {
-            goto ERROR_RETURN;
+            int step;
+            if ((step = _read_message(reply, replylen, ctx)) <= 0)
+            {
+                goto ERROR_RETURN;
+            }
+            reply += step;
+            replylen -= step;
         }
-        reply += step;
-        replylen -= step != 1 ? step : replylen;
-
+        
     }
     return 1;
 ERROR_RETURN:
@@ -388,8 +389,19 @@ void _send_have(int sock, uint32_t index)
     
 }
 
+peer_result *_build_result(int index, char *buf, size_t buflen)
+{
+    peer_result *res = (peer_result *)malloc(sizeof(peer_result));
+    res->index = index;
+    res->buflen = buflen;
+    res->buf = (char *)malloc(buflen);
+    memcpy(res->buf, buf, buflen);
+    res->next = NULL;
+    return res;
+}
 
-int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw, int pwlen)
+
+peer_result * peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw, int pwlen)
 {
     char *recv;
     char *bitfield;
@@ -398,7 +410,7 @@ int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw, i
     _peer_context *ctx;
     if ((recv = _handshake(p, info_hash, peerid, &sock)) == NULL)
     {
-        return 0;
+        return NULL;
     }
     bitfieldlen = _build_bitfield(recv, &bitfield);
     ctx = _peer_context_init(sock, bitfield, bitfieldlen, info_hash);
@@ -417,6 +429,7 @@ int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw, i
     piecework *head = pw;
     piecework *ppw = head;
     piecework *prev = NULL;
+    peer_result *res = NULL;
     int peer_try_times = pwlen;
     for (; ppw != NULL;)
     {
@@ -424,12 +437,6 @@ int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw, i
         if (!piecework_has_piece(bitfield, bitfieldlen, ppw->index))
         {
             printf("[peer] Peer %s:%d does not have piece #%d\n", p->ip, p->port, ppw->index);
-            peer_try_times --;
-            if (peer_try_times <= 0)
-            {
-                goto RETURN_DIRECTLY;
-            }
-            head = piecework_append(head, ppw, prev);
             ppw = next;
             continue;
         }
@@ -461,11 +468,25 @@ int peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw, i
         _send_have(ctx->sock, ppw->index);
         prev = ppw;
         ppw = next;
+        
+        if (res == NULL)
+        {
+            res = _build_result(ppw->index, ctx->state->buf, ctx->state->buflen);
+        }
+        else
+        {
+            peer_result *pr = res;
+            while (pr->next != NULL)
+            {
+                pr = pr->next;
+            }
+            pr->next = _build_result(ppw->index, ctx->state->buf, ctx->state->buflen);
+        }
 
     }
-    return 1;
+    return res;
 RETURN_DIRECTLY: 
     // Because the peer cannot provide/download the piecework we want
-    return 0;
+    return NULL;
 
 }
