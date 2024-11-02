@@ -147,31 +147,43 @@ char * _handshake(peer *p, const char *info_hash, const char *peerid, int *socke
 {
     int sock;
     char *handshake;
-    char *recv;
+    char *recvs;
+    int recvslen;
     int pstrlen;
+    char *res;
+    int reslen;
     if ((sock = tcp_connect(p->ip, p->port)) <= 0)
     {
         return NULL;
     }
     
     handshake = _build_handshake(info_hash, peerid);
-    if (tcp_send(sock, handshake, 68, &recv) == 0)
+    if ((recvslen = tcp_send(sock, handshake, 68, &recvs)) == 0)
     {
         return NULL;
     }
-    pstrlen = (int)recv[0];
-    if (recv == 0)
+    pstrlen = (int)recvs[0];
+    if (recvs == 0)
     {
         return NULL;
     }
-    if (memcmp(recv + 1 + pstrlen + 8, info_hash, 20) != 0)
+    if (memcmp(recvs + 1 + pstrlen + 8, info_hash, 20) != 0)
     {
         printf("[peer] Fail to handshake with %s:%d\n", p->ip, p->port);
         return NULL;
     }
     *socket = sock;
     free(handshake);
-    return recv + 1 + pstrlen + 48;
+    int _handshakelen = 1 + pstrlen + 8 + 40;
+    reslen = recvslen - _handshakelen;
+    res = (char *)malloc(reslen);
+    if (res == NULL)
+    {
+        return NULL;
+    }
+    memcpy(res, recvs + _handshakelen, recvslen - _handshakelen);
+    free(recvs);
+    return res;
 }
 
 
@@ -179,8 +191,16 @@ int _build_bitfield(char *buf, char **bitfield)
 {
     int msglen;
     message *msg;
+    char *payload;
     msg = message_deserialize(buf, &msglen);
-    *bitfield = msg->payload;
+    payload = (char *)malloc(msglen - 5);
+    if (payload == NULL)
+    {
+        return 0;
+    }
+    memcpy(payload, msg->payload, msglen - 5);
+    *bitfield = payload;
+    free(msg);
     return msglen - 5;
 }
 
@@ -269,9 +289,10 @@ int _read_message(char *buf, int buflen, _peer_context *ctx)
         default:
         {
             ctx->io_flag = 1;
-            return 0; // Garbage bit stream
+            return -1; // Garbage bit stream
         }
     }
+    assert(msglen > 0);
     return msglen;
 }
 
@@ -299,8 +320,12 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
     _peer_state *state = _peer_state_init(pw->index, pw->length);
     ctx->state = state;
     int replylen = buflen;
-    char *reply = (char *)malloc(replylen);
-    memcpy(reply, buf, buflen);
+    char *reply = NULL;
+    if (replylen != 0)
+    {
+        reply = (char *)malloc(replylen);
+        memcpy(reply, buf, buflen);
+    }
 
     while (state->downloaded < pw->length)
     {
@@ -316,6 +341,10 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
                 char *recvs;
                 int recvslen;
                 recvslen = _peer_send_request(ctx->sock, pw->index, state->requested, block_size, &recvs);
+                if (recvslen == 0)
+                {
+                    goto ERROR_RETURN;
+                }
 				state->requested += block_size;
                 replylen += recvslen;
                 if (ctx->io_flag == 1)
@@ -325,7 +354,6 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
                 }
                 else
                 {
-                    assert(reply != NULL);
                     char *new_reply = (char *)realloc(reply, replylen);
                     reply = new_reply;
                 }
@@ -340,15 +368,20 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
         while (replylen > 0)
         {
             int step;
-            if ((step = _read_message(reply, replylen, ctx)) <= 0)
+            if ((step = _read_message(reply, replylen, ctx)) == 0)
             {
                 goto ERROR_RETURN;
+            }
+            else if (step == -1)
+            {
+                goto SUCCESS_RETURN;
             }
             reply += step;
             replylen -= step;
         }
         
     }
+SUCCESS_RETURN:
     return 1;
 ERROR_RETURN:
     free(state->buf);
@@ -361,14 +394,13 @@ ERROR_RETURN:
 int _check_integrity(piecework *pw, _peer_context *ctx)
 {
     assert(ctx->state != NULL);
-    char *hashed_buf = NULL;
+    char *hashed_buf = (char *)malloc(20);
     SHA1_CTX sha1_ctx;
     SHA1Init(&sha1_ctx);
     SHA1Update(&sha1_ctx, (const unsigned char*)ctx->state->buf, ctx->state->buflen);
     SHA1Final((unsigned char *)hashed_buf, &sha1_ctx);
-    if (!memcmp(hashed_buf, pw->hash, 20))
+    if (memcmp(hashed_buf, pw->hash, 20))
     {
-        printf("[peer] Fail to check the integrity of piecework with index: %d", pw->index);
         return 0;
     }
     return 1;
@@ -413,6 +445,7 @@ peer_result * peer_download(peer *p, char *info_hash, const char *peerid, piecew
         return NULL;
     }
     bitfieldlen = _build_bitfield(recv, &bitfield);
+    free(recv);
     ctx = _peer_context_init(sock, bitfield, bitfieldlen, info_hash);
 
     char *unchoke_recvs = NULL;
@@ -472,6 +505,9 @@ peer_result * peer_download(peer *p, char *info_hash, const char *peerid, piecew
         if (res == NULL)
         {
             res = _build_result(ppw->index, ctx->state->buf, ctx->state->buflen);
+            free(ctx->state);
+            unchoke_recvslen = 0;
+            interested_recvslen = 0;
         }
         else
         {

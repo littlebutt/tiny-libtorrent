@@ -69,7 +69,7 @@ int message_parse_piece(message *msg, int msglen, char **buf, int buflen, int in
         printf("[message] Expected index %d, but got index: %d", index, parsed_index);
         return 0;
     }
-    begin = msg->payload[4] << 24 | msg->payload[5] << 16 | msg->payload[6] << 8 | msg->payload[7];
+    begin = ((uint8_t)msg->payload[4] << 24) | ((uint8_t)msg->payload[5] << 16) | ((uint8_t)msg->payload[6] << 8) | ((uint8_t)msg->payload[7]);
     if (begin > buflen)
     {
         printf("[message] Begin offset is too high: %d > %d", begin, buflen);
