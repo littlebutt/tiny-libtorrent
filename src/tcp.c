@@ -1,6 +1,5 @@
 #include "tcp.h"
 
-
 int _set_socket_nonblocking(int sock)
 {
 #ifdef _WIN32
@@ -90,17 +89,24 @@ int tcp_connect(const char *ip, int port)
         int so_error;
         socklen_t len = sizeof(so_error);
         getsockopt(sock, SOL_SOCKET, SO_ERROR, (void *)&so_error, &len);
-        if (so_error == 0) {
+        if (so_error == 0)
+        {
             printf("[tcp] Connected to server %s on port %d\n", ip, port);
             return sock;
-        } else {
+        }
+        else
+        {
             printf("[tcp] Connection failed: %d\n", so_error);
             return 0;
         }
-    } else if (select_result == 0) {
+    }
+    else if (select_result == 0)
+    {
         printf("[tcp] Connection timed out %s:%d\n", ip, port);
         return 0;
-    } else {
+    }
+    else
+    {
         printf("[tcp] Select error\n");
         return 0;
     }
@@ -116,7 +122,6 @@ void tcp_close(int sock)
 #endif
 }
 
-
 int wait_for_socket(int sock, int for_write, int timeout)
 {
     fd_set fds;
@@ -128,19 +133,20 @@ int wait_for_socket(int sock, int for_write, int timeout)
     tv.tv_sec = timeout;
     tv.tv_usec = 0;
 
-    if (for_write) {
+    if (for_write)
+    {
         return select(sock + 1, NULL, &fds, NULL, &tv);
-    } else {
+    }
+    else
+    {
         return select(sock + 1, &fds, NULL, NULL, &tv);
     }
 }
-
 
 int tcp_send(int sock, const char *msg, size_t msglen, char **recvs)
 {
     send(sock, msg, msglen, 0);
     dbg_bin("[tcp] Sent", msg, msglen);
-    
 
     size_t buflen = 1024;
     char *buf = (char *)malloc(buflen);
@@ -213,12 +219,10 @@ int tcp_send(int sock, const char *msg, size_t msglen, char **recvs)
     return bufsize;
 }
 
-
 int _get_message_size(const char *buf)
 {
     return (uint32_t)(buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]) + 4;
 }
-
 
 int tcp_send_for_message(int sock, const char *msg, size_t msglen, char **recvs)
 {
@@ -237,7 +241,7 @@ int tcp_send_for_message(int sock, const char *msg, size_t msglen, char **recvs)
     while (1)
     {
         int bufsize = recv(sock, buf + total_received, buflen - total_received, 0);
-        
+
         if (bufsize >= 0)
         {
             total_received += bufsize;
@@ -265,7 +269,8 @@ int tcp_send_for_message(int sock, const char *msg, size_t msglen, char **recvs)
                 }
             }
 
-            if (total_received >= msg_size) {
+            if (total_received >= msg_size)
+            {
                 break;
             }
         }

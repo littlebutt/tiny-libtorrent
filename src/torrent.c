@@ -1,6 +1,6 @@
 #include "torrent.h"
 
-torrent * torrent_new()
+torrent *torrent_new()
 {
     torrent *tor = (torrent *)malloc(sizeof(torrent));
     return tor;
@@ -8,10 +8,10 @@ torrent * torrent_new()
 
 void torrent_free(torrent *tor)
 {
-	free(tor->announce);
-	free(tor->info_pieces);
-	free(tor->info_name);
-	free(tor);
+    free(tor->announce);
+    free(tor->info_pieces);
+    free(tor->info_name);
+    free(tor);
 }
 
 size_t _torrent_fsize(FILE *fp)
@@ -29,7 +29,8 @@ int _torrent_fopen(const char *filename, char **content)
     char *buf = NULL;
 
     fp = fopen(filename, "rb");
-    if (!fp) {
+    if (!fp)
+    {
         return 0;
     }
 
@@ -55,85 +56,96 @@ int _torrent_decode(torrent **tor, const char *buf, size_t buflen)
     {
         switch (res)
         {
-            case BENCODE_STRING:
+        case BENCODE_STRING: {
+            char *key = (char *)malloc((ctx->toklen + 1) * sizeof(char));
+            if (key == NULL)
             {
-                char *key = (char *)malloc((ctx->toklen + 1) * sizeof(char));
-                if (key == NULL)
+                return 0;
+            }
+            memcpy(key, ctx->tok, ctx->toklen);
+            key[ctx->toklen] = '\0';
+            switch (flag)
+            {
+            case 1: {
+                if (strcmp(key, "announce") == 0)
                 {
-                    return 0;
+                    flag = 2;
                 }
-                memcpy(key, ctx->tok, ctx->toklen);
-                key[ctx->toklen] = '\0';
-                switch (flag) {
-                    case 1: {
-                        if (strcmp(key, "announce") == 0) {
-                            flag = 2;
-                        } else if (strcmp(key, "pieces") == 0) {
-                            flag = 3;
-                        } else if (strcmp(key, "piece length") == 0) {
-                            flag = 4;
-                        } else if (strcmp(key, "length") == 0) {
-                            flag = 5;
-                        } else if (strcmp(key, "name") == 0) {
-                            flag = 6;
-                        } else {
-                            flag = 1;
-                        }
-                        break;
-                    }
-                    case 2: {
-                        (*tor)->announce = key;
-                        flag = 1;
-                        break;
-
-                    }
-                    case 3: {
-                        char *value = (char *)malloc(ctx->toklen * sizeof(char));
-                        if (value == NULL) {
-                            return 0;
-                        }
-                        memcpy(value, key, ctx->toklen * sizeof(char));
-                        (*tor)->info_pieces = value;
-                        (*tor)->_info_pieces_length = ctx->toklen;
-                        flag = 1;
-                        free(key);
-                        break;
-                    }
-                    case 6: {
-                        (*tor)->info_name = key;
-                        flag = 1;
-                        break;
-                    }
-                    case 4:
-                    case 5: {
-                        return 0;
-                    }
+                else if (strcmp(key, "pieces") == 0)
+                {
+                    flag = 3;
+                }
+                else if (strcmp(key, "piece length") == 0)
+                {
+                    flag = 4;
+                }
+                else if (strcmp(key, "length") == 0)
+                {
+                    flag = 5;
+                }
+                else if (strcmp(key, "name") == 0)
+                {
+                    flag = 6;
+                }
+                else
+                {
+                    flag = 1;
                 }
                 break;
             }
-            case BENCODE_INTEGER:
-            {
-                char *key = (char *)malloc((ctx->toklen + 1) * sizeof(char));
-                memcpy(key, ctx->tok, ctx->toklen);
-                key[ctx->toklen] = '\0';
-                switch (flag) {
-                    case 4: {
-                        (*tor)->info_piece_length = (size_t)atoi(key);
-                        flag = 1;
-                        break;
-                    }
-                    case 5: {
-                        (*tor)->info_length = (size_t)atoi(key);
-                        flag = 1;
-                        break;
-                    }
-                    case 2:
-                    case 3:
-                    case 6: {
-                        return 0;
-                    }
-                }
+            case 2: {
+                (*tor)->announce = key;
+                flag = 1;
+                break;
             }
+            case 3: {
+                char *value = (char *)malloc(ctx->toklen * sizeof(char));
+                if (value == NULL)
+                {
+                    return 0;
+                }
+                memcpy(value, key, ctx->toklen * sizeof(char));
+                (*tor)->info_pieces = value;
+                (*tor)->_info_pieces_length = ctx->toklen;
+                flag = 1;
+                free(key);
+                break;
+            }
+            case 6: {
+                (*tor)->info_name = key;
+                flag = 1;
+                break;
+            }
+            case 4:
+            case 5: {
+                return 0;
+            }
+            }
+            break;
+        }
+        case BENCODE_INTEGER: {
+            char *key = (char *)malloc((ctx->toklen + 1) * sizeof(char));
+            memcpy(key, ctx->tok, ctx->toklen);
+            key[ctx->toklen] = '\0';
+            switch (flag)
+            {
+            case 4: {
+                (*tor)->info_piece_length = (size_t)atoi(key);
+                flag = 1;
+                break;
+            }
+            case 5: {
+                (*tor)->info_length = (size_t)atoi(key);
+                flag = 1;
+                break;
+            }
+            case 2:
+            case 3:
+            case 6: {
+                return 0;
+            }
+            }
+        }
         }
     }
     // FIXME: The ``res`` ends with -1 (BENCODE_ERROR_INVALID) but the data we
@@ -162,7 +174,7 @@ int torrent_parse(torrent *tor, const char *filename)
     return 1;
 }
 
-torrent_hash * torrent_hash_new()
+torrent_hash *torrent_hash_new()
 {
     torrent_hash *torh = (torrent_hash *)malloc(sizeof(torrent_hash));
     return torh;
@@ -170,9 +182,9 @@ torrent_hash * torrent_hash_new()
 
 void torrent_hash_free(torrent_hash *torh)
 {
-	free(torh->info_hash);
-	free(torh->pieces_hashes);
-	free(torh);
+    free(torh->info_hash);
+    free(torh->pieces_hashes);
+    free(torh);
 }
 
 size_t _torrent_hash_marshal_info(char **info, torrent *tor)
@@ -219,25 +231,15 @@ size_t _torrent_hash_marshal_info(char **info, torrent *tor)
     size_t name_len = strlen(name);
     size_t piece_length_len = strlen(piece_length);
     size_t pieces_len = (tor->_info_pieces_length) + strlen(_pieces_part0);
-    size_t infolen = sizeof(char) * (2 +
-        length_len + name_len + piece_length_len +
-        pieces_len);
+    size_t infolen = sizeof(char) * (2 + length_len + name_len + piece_length_len + pieces_len);
     *info = (char *)malloc(infolen);
-    memset(*info, 0, 2 +
-        length_len + name_len + piece_length_len +
-        pieces_len);
+    memset(*info, 0, 2 + length_len + name_len + piece_length_len + pieces_len);
     memcpy(*info, "d", 1);
     memcpy(*info + 1, length, length_len);
-    memcpy(*info + 1
-        + length_len, name, name_len);
-    memcpy(*info + 1
-        + length_len + name_len, piece_length, piece_length_len);
-    memcpy(*info + 1
-        + length_len + name_len + piece_length_len, pieces,
-        pieces_len);
-    memcpy(*info + 1 +
-        length_len + name_len + piece_length_len +
-        pieces_len, "e", 1);
+    memcpy(*info + 1 + length_len, name, name_len);
+    memcpy(*info + 1 + length_len + name_len, piece_length, piece_length_len);
+    memcpy(*info + 1 + length_len + name_len + piece_length_len, pieces, pieces_len);
+    memcpy(*info + 1 + length_len + name_len + piece_length_len + pieces_len, "e", 1);
     free(_pieces_part0);
     free(length);
     free(name);
@@ -255,7 +257,7 @@ int _torrent_hash_hash_info(char *hashed_info, char *info, size_t infolen)
 {
     SHA1_CTX ctx;
     SHA1Init(&ctx);
-    SHA1Update(&ctx, (const unsigned char*)info, infolen);
+    SHA1Update(&ctx, (const unsigned char *)info, infolen);
     SHA1Final((unsigned char *)hashed_info, &ctx);
     return 1;
 }

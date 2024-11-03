@@ -21,7 +21,7 @@ void _cleanup_sockets()
 #endif
 }
 
-char * _mangle_url(const char *url)
+char *_mangle_url(const char *url)
 {
     const char *prefix = "http://";
     char *res = strdup(url);
@@ -32,7 +32,7 @@ char * _mangle_url(const char *url)
     return res;
 }
 
-char * _build_message(const char *hostname, const char *path, const char *params)
+char *_build_message(const char *hostname, const char *path, const char *params)
 {
     char *message = (char *)malloc(sizeof(char) * 8192);
     if (message == NULL)
@@ -41,17 +41,19 @@ char * _build_message(const char *hostname, const char *path, const char *params
     }
     if (params != NULL)
     {
-        sprintf(message, "GET %s?%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path, params, hostname);
+        sprintf(message, "GET %s?%s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path,
+                params, hostname);
     }
     else
     {
-        sprintf(message, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path, hostname);
+        sprintf(message, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", path,
+                hostname);
     }
-    
+
     return message;
 }
 
-char * _get_ip_from_url(const char *url)
+char *_get_ip_from_url(const char *url)
 {
     struct hostent *he;
     struct in_addr **addr_list;
@@ -99,7 +101,7 @@ int _parse_url(const char *url, char **hostname, char **port, char **path, char 
         {
             *slash_ptr = '\0';
         }
-        *hostname = strdup(url_copy);  // host
+        *hostname = strdup(url_copy); // host
         *port = strdup("80");
     }
 
@@ -110,12 +112,14 @@ int _parse_url(const char *url, char **hostname, char **port, char **path, char 
             *question_ptr = '\0';
             *path = strdup(slash_ptr2);
             *params = strdup(question_ptr + 1);
-        } else
+        }
+        else
         {
             *path = strdup(slash_ptr2);
             *params = NULL;
         }
-    } else
+    }
+    else
     {
         *path = strdup("/");
         *params = NULL;
@@ -125,7 +129,6 @@ int _parse_url(const char *url, char **hostname, char **port, char **path, char 
     free(url_copy2);
     return 1;
 }
-
 
 int http_get(const char *url, char **recvs)
 {
@@ -241,7 +244,7 @@ int http_get(const char *url, char **recvs)
             server_reply = new_response;
         }
 
-    } while(bytes_received > 0);
+    } while (bytes_received > 0);
 
     server_reply[total_bytes + 4096] = '\0';
 
@@ -257,22 +260,15 @@ int http_get(const char *url, char **recvs)
     return 1;
 }
 
-
 int _is_url_safe(unsigned char ch)
 {
-    return (ch >= 'a' && ch <= 'z') ||
-           (ch >= 'A' && ch <= 'Z') ||
-           (ch >= '0' && ch <= '9') ||
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') ||
            (ch == '-') || (ch == '_') || (ch == '.') || (ch == '~');
 }
 
+void _byte_to_hex(unsigned char byte, char *output) { sprintf(output, "%02x", byte); }
 
-void _byte_to_hex(unsigned char byte, char *output)
-{
-    sprintf(output, "%02x", byte);
-}
-
-char * http_url_encode(const char *url, int urllen)
+char *http_url_encode(const char *url, int urllen)
 {
     size_t output_length = 0;
     for (size_t i = 0; i < urllen; i++)
@@ -288,7 +284,8 @@ char * http_url_encode(const char *url, int urllen)
     }
 
     char *output = (char *)malloc(output_length + 1);
-    if (!output) {
+    if (!output)
+    {
         return NULL;
     }
 
@@ -313,11 +310,12 @@ char * http_url_encode(const char *url, int urllen)
     return output;
 }
 
-char * http_response_header(const char *recvs, const char *header)
+char *http_response_header(const char *recvs, const char *header)
 {
     char *recvs_copy = strdup(recvs);
     char *line = strtok(recvs_copy, "\r\n");
-    while (line != NULL) {
+    while (line != NULL)
+    {
         if (strncmp(line, header, strlen(header)) == 0)
         {
             char *p = strdup(line);
@@ -330,7 +328,7 @@ char * http_response_header(const char *recvs, const char *header)
     return NULL;
 }
 
-char * http_response_body(const char *recvs, size_t content_length)
+char *http_response_body(const char *recvs, size_t content_length)
 {
     char *start = strstr(recvs, "\r\n\r\n");
     if (start != NULL)

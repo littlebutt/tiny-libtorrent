@@ -13,36 +13,34 @@
 
 #include <stddef.h>
 
-#define BENCODE_ERROR_OOM        -4
-#define BENCODE_ERROR_BAD_KEY    -3
-#define BENCODE_ERROR_EOF        -2
-#define BENCODE_ERROR_INVALID    -1
-#define BENCODE_DONE              0
-#define BENCODE_INTEGER           1
-#define BENCODE_STRING            2
-#define BENCODE_LIST_BEGIN        3
-#define BENCODE_LIST_END          4
-#define BENCODE_DICT_BEGIN        5
-#define BENCODE_DICT_END          6
+#define BENCODE_ERROR_OOM     -4
+#define BENCODE_ERROR_BAD_KEY -3
+#define BENCODE_ERROR_EOF     -2
+#define BENCODE_ERROR_INVALID -1
+#define BENCODE_DONE          0
+#define BENCODE_INTEGER       1
+#define BENCODE_STRING        2
+#define BENCODE_LIST_BEGIN    3
+#define BENCODE_LIST_END      4
+#define BENCODE_DICT_BEGIN    5
+#define BENCODE_DICT_END      6
 
-#define BENCODE_FLAG_FIRST         (1 << 0)
-#define BENCODE_FLAG_DICT          (1 << 1)
-#define BENCODE_FLAG_EXPECT_VALUE  (1 << 2)
+#define BENCODE_FLAG_FIRST        (1 << 0)
+#define BENCODE_FLAG_DICT         (1 << 1)
+#define BENCODE_FLAG_EXPECT_VALUE (1 << 2)
 
 /**
  * Return 1 if next element will be the first element at this nesting.
  * This is a helper macro.
  */
-#define BENCODE_FIRST(ctx) \
-    ((ctx)->size ? (ctx)->stack[(ctx)->size - 1].flags & BENCODE_FLAG_FIRST \
-                 : !ctx->tok)
+#define BENCODE_FIRST(ctx)                                                                         \
+    ((ctx)->size ? (ctx)->stack[(ctx)->size - 1].flags & BENCODE_FLAG_FIRST : !ctx->tok)
 /**
  * Return 1 if next element is a dictionary value.
  * This is a helper macro.
  */
-#define BENCODE_IS_VALUE(ctx) \
-    ((ctx)->size && \
-     ((ctx)->stack[(ctx)->size - 1].flags & BENCODE_FLAG_DICT) && \
+#define BENCODE_IS_VALUE(ctx)                                                                      \
+    ((ctx)->size && ((ctx)->stack[(ctx)->size - 1].flags & BENCODE_FLAG_DICT) &&                   \
      ((ctx)->stack[(ctx)->size - 1].flags & BENCODE_FLAG_EXPECT_VALUE))
 
 struct bencode {

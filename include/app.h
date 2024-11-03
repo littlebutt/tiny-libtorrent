@@ -1,21 +1,19 @@
 #ifndef APP_H
 #define APP_H
 
-
-#include "torrent.h"
 #include "http.h"
 #include "peers.h"
 #include "piecework.h"
+#include "torrent.h"
 
-typedef struct 
-{
+typedef struct {
     torrent *tor;
     torrent_hash *torh;
     piecework *pw;
     char *peerid;
 } app;
 
-app * app_new(const char *filename);
+app *app_new(const char *filename);
 
 int app_download(app *a, const char *dest);
 

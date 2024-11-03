@@ -1,6 +1,6 @@
 #include "app.h"
 
-app * app_new(const char *filename)
+app *app_new(const char *filename)
 {
     app *a = (app *)malloc(sizeof(app));
     a->tor = torrent_new();
@@ -23,7 +23,7 @@ void app_free(app *a)
     free(a);
 }
 
-char * _build_url(app *a)
+char *_build_url(app *a)
 {
     char *url = (char *)malloc(sizeof(char) * 1024);
     if (url == NULL)
@@ -34,7 +34,8 @@ char * _build_url(app *a)
 
     char *encoded_info_hash = http_url_encode(a->torh->info_hash, 20);
 
-    sprintf(url, "%s?compact=1&downloaded=0&info_hash=%s&left=%lld&peer_id=%s&port=6881&uploaded=0", a->tor->announce, encoded_info_hash, a->tor->info_length, a->peerid);
+    sprintf(url, "%s?compact=1&downloaded=0&info_hash=%s&left=%lld&peer_id=%s&port=6881&uploaded=0",
+            a->tor->announce, encoded_info_hash, a->tor->info_length, a->peerid);
     return url;
 }
 
@@ -50,10 +51,13 @@ int _integrate_peer_result(char **buf, peer_result *res, const torrent *tor)
     for (int i = 0; i < tor->_info_pieces_length / 20; i++)
     {
         int begin = pr->index * tor->info_piece_length;
-        int end = begin + tor->info_piece_length > tor->info_length ? tor->info_length : begin + tor->info_piece_length;
+        int end = begin + tor->info_piece_length > tor->info_length
+                      ? tor->info_length
+                      : begin + tor->info_piece_length;
         memcpy(*buf + begin, res->buf, end - begin);
 
-        printf("[app] Downloaded piece #%d - %0.2f%%", res->index, (float)i / (tor->_info_pieces_length / 20));
+        printf("[app] Downloaded piece #%d - %0.2f%%", res->index,
+               (float)i / (tor->_info_pieces_length / 20));
     }
     return 1;
 }
@@ -79,7 +83,8 @@ int app_download(app *a, const char *dest)
     peer_result *result = NULL;
     while (p)
     {
-        peer_result *res = peer_download(p, a->torh->info_hash, a->peerid, a->pw, a->tor->_info_pieces_length / 20);
+        peer_result *res = peer_download(p, a->torh->info_hash, a->peerid, a->pw,
+                                         a->tor->_info_pieces_length / 20);
         if (result == NULL)
         {
             result = res;
@@ -102,16 +107,16 @@ int app_download(app *a, const char *dest)
         return 0;
     }
 
-    char *path = dest == NULL ? a->tor->info_name : dest;
+    const char *path = dest == NULL ? a->tor->info_name : dest;
 
     FILE *fp = fopen(path, "wb");
     if (fp == NULL)
     {
-        printf("[app] Fail to create path %s\n");
+        printf("[app] Fail to create path %s\n", path);
         return 0;
     }
     fwrite(buf, a->tor->info_length, 1, fp);
     fclose(fp);
-    
+
     return 1;
-  }
+}

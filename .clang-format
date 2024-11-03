@@ -1,0 +1,10 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 100
+AlignConsecutiveMacros: true
+IndentPPDirectives: BeforeHash
+BreakBeforeBraces: Custom
+BraceWrapping:
+    AfterControlStatement: Always
+    BeforeElse: true
+    AfterFunction: true
