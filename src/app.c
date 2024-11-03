@@ -96,7 +96,22 @@ int app_download(app *a, const char *dest)
         p = p->next;
     }
     char *buf = NULL;
-    _integrate_peer_result(&buf, result, a->tor);
+    if (!_integrate_peer_result(&buf, result, a->tor))
+    {
+        printf("[app] Fail to integrate the result buffer\n");
+        return 0;
+    }
+
+    char *path = dest == NULL ? a->tor->info_name : dest;
+
+    FILE *fp = fopen(path, "wb");
+    if (fp == NULL)
+    {
+        printf("[app] Fail to create path %s\n");
+        return 0;
+    }
+    fwrite(buf, a->tor->info_length, 1, fp);
+    fclose(fp);
     
-    return 0;
+    return 1;
   }

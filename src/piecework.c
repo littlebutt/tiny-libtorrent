@@ -1,13 +1,11 @@
 #include "piecework.h"
 
-
 int _calculate_length(int index, const size_t piece_length, const size_t length)
 {
     size_t begin = index * piece_length;
     size_t end = begin + piece_length > length ? length : begin + piece_length;
     return (int)(end - begin);
 }
-
 
 int piecework_build(piecework **pw, const torrent *tor)
 {
@@ -54,7 +52,7 @@ void piecework_free(piecework *pw)
     }
 }
 
-piecework * piecework_append(piecework *pw, piecework *node, piecework *prev)
+piecework *piecework_append(piecework *pw, piecework *node, piecework *prev)
 {
     if (pw == NULL || node == NULL || node->next == NULL)
     {
@@ -71,7 +69,8 @@ piecework * piecework_append(piecework *pw, piecework *node, piecework *prev)
     }
 
     piecework *last = pw;
-    while (last->next != NULL) {
+    while (last->next != NULL)
+    {
         last = last->next;
     }
 
@@ -84,22 +83,22 @@ piecework * piecework_append(piecework *pw, piecework *node, piecework *prev)
 int piecework_has_piece(char *bitfield, int bitfieldlen, int index)
 {
     int byteIndex = index / 8;
-	int offset = index % 8;
-	if (byteIndex < 0 || byteIndex >= bitfieldlen)
+    int offset = index % 8;
+    if (byteIndex < 0 || byteIndex >= bitfieldlen)
     {
-		return 0;
-	}
-	return bitfield[byteIndex] >> ((uint8_t)(7 - offset) & 1) != 0;
+        return 0;
+    }
+    return bitfield[byteIndex] >> ((uint8_t)(7 - offset) & 1) != 0;
 }
 
 int piecework_set_piece(char *bitfield, int bitfieldlen, int index)
 {
     int byteIndex = index / 8;
-	int offset = index % 8;
-	if (byteIndex < 0 || byteIndex >= bitfieldlen)
+    int offset = index % 8;
+    if (byteIndex < 0 || byteIndex >= bitfieldlen)
     {
-		return 0;
-	}
+        return 0;
+    }
     bitfield[byteIndex] |= 1 << (int)(7 - offset);
     return 1;
 }
