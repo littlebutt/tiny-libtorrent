@@ -55,7 +55,13 @@ dkms.conf
 # IDE and editors
 
 .vscode/
+*.user
+.vs/
+tiny-libtorrent/
+Debug/
+x64/
 
 # For debug
 
 *.txt
+build/
