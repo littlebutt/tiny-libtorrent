@@ -29,6 +29,7 @@
 *.dylib
 
 # Executables
+tiny-libtorrent
 *.exe
 *.out
 *.app
