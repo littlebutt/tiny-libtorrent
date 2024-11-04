@@ -98,7 +98,7 @@ int _make_peers(peer **p, const char *buf, size_t buflen)
         tail = pt;
     }
     *p = head;
-    printf("\n[peer] Find %lld peers!\n", buflen / 6);
+    printf("\n[peer] Find %zu peers!\n", buflen / 6);
     return 1;
 }
 
