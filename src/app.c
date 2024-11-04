@@ -34,7 +34,7 @@ char *_build_url(app *a)
 
     char *encoded_info_hash = http_url_encode(a->torh->info_hash, 20);
 
-    sprintf(url, "%s?compact=1&downloaded=0&info_hash=%s&left=%lld&peer_id=%s&port=6881&uploaded=0",
+    sprintf(url, "%s?compact=1&downloaded=0&info_hash=%s&left=%zu&peer_id=%s&port=6881&uploaded=0",
             a->tor->announce, encoded_info_hash, a->tor->info_length, a->peerid);
     return url;
 }

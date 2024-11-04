@@ -14,14 +14,14 @@ else
 endif
 
 SRCS = $(wildcard ./src/*.c)
-OBJS = $(patsubst ./src/%.c, ./src/%.o, $(SRCS))
+OBJS = $(patsubst ./src/%.c, ./build/%.o, $(SRCS))
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) -o $(TARGET) $(OBJS) $(LDFLAGS)
 
-./src/%.o: ./src/%.c
+./build/%.o: ./src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

@@ -167,8 +167,8 @@ int torrent_parse(torrent *tor, const char *filename)
 #ifdef DEBUG
     printf("torrent->announce: %s\n", tor->announce);
     printf("torrent->info_name: %s\n", tor->info_name);
-    printf("torrent->info_piece_length: %lld\n", tor->info_piece_length);
-    printf("torrent->info_length: %lld\n", tor->info_length);
+    printf("torrent->info_piece_length: %zu\n", tor->info_piece_length);
+    printf("torrent->info_length: %zu\n", tor->info_length);
     dbg_bin("torrent->info_pieces", tor->info_pieces, tor->_info_pieces_length);
 #endif // DEBUG
     return 1;
@@ -196,7 +196,7 @@ size_t _torrent_hash_marshal_info(char **info, torrent *tor)
         goto ERROR;
     }
     memset(_pieces_part0, 0, 20);
-    sprintf(_pieces_part0, "6:pieces%lld:", tor->_info_pieces_length);
+    sprintf(_pieces_part0, "6:pieces%zu:", tor->_info_pieces_length);
     pieces = (char *)malloc(sizeof(char) * ((tor->_info_pieces_length) + strlen(_pieces_part0)));
     if (pieces == NULL)
     {
@@ -214,19 +214,19 @@ size_t _torrent_hash_marshal_info(char **info, torrent *tor)
     {
         goto ERROR;
     }
-    sprintf(piece_length, "12:piece lengthi%llde", tor->info_piece_length);
+    sprintf(piece_length, "12:piece lengthi%zue", tor->info_piece_length);
     length = (char *)malloc(sizeof(char) * 512);
     if (length == NULL)
     {
         goto ERROR;
     }
-    sprintf(length, "6:lengthi%llde", tor->info_length);
+    sprintf(length, "6:lengthi%zue", tor->info_length);
     name = (char *)malloc(sizeof(char) * 2048);
     if (name == NULL)
     {
         goto ERROR;
     }
-    sprintf(name, "4:name%lld:%s", strlen(tor->info_name), tor->info_name);
+    sprintf(name, "4:name%zu:%s", strlen(tor->info_name), tor->info_name);
     size_t length_len = strlen(length);
     size_t name_len = strlen(name);
     size_t piece_length_len = strlen(piece_length);
