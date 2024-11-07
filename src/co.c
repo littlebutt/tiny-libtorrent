@@ -29,9 +29,8 @@ void co_free(coroutine *co)
 
 void co_ctx_make(coroutine *co)
 {
-    char *sp = co->stack + co->stack_size - sizeof(void*);
-    sp = (char*)((intptr_t)sp & -16LL); // 0xff 0xff 0xff 0xf0
-    *(void**)sp = (void*)co->func;
+    char *sp = co->stack + co->stack_size - sizeof(void *);
+    sp = (char *)((intptr_t)sp & -16LL); // 0xff 0xff 0xff 0xf0
+    *(void **)sp = (void *)co->func;
     co->ctx.regs[CO_RSP] = sp;
 }
-

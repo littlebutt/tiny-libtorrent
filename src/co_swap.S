@@ -1,9 +1,7 @@
 .global co_ctx_swap
 
 #if !defined( __APPLE__ ) && !defined( __MINGW32__ )
-    .def co_ctx_swap
     .type co_ctx_swap, @function
-    .endef
 #endif
 
 co_ctx_swap:

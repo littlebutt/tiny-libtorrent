@@ -3,11 +3,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
-#define MAX_PARAMS 5
-
-enum
-{
+enum {
     CO_R15 = 0,
     CO_R14,
     CO_R13,
@@ -23,20 +21,18 @@ enum
     CO_RSP,
 };
 
-struct co_context
-{
+struct co_context {
     void *regs[13];
 };
 
 typedef void (*pfunc)();
 
-typedef struct
-{
+typedef struct {
     struct co_context ctx;
     char *stack;
     size_t stack_size;
     pfunc func;
-}coroutine;
+} coroutine;
 
 coroutine *co_new(pfunc func, size_t stack_size);
 
