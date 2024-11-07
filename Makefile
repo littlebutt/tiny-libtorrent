@@ -13,8 +13,9 @@ else
 	TARGET = tiny-libtorrent.exe
 endif
 
-SRCS = $(wildcard ./src/*.c)
-OBJS = $(patsubst ./src/%.c, ./build/%.o, $(SRCS))
+SRCS = $(wildcard ./src/*.c ./src/*.S)
+OBJS = $(patsubst ./src/%, ./build/%, $(SRCS:.c=.o))
+OBJS := $(patsubst ./src/%, ./build/%, $(OBJS:.S=.o))
 
 all: $(TARGET)
 
@@ -22,6 +23,9 @@ $(TARGET): $(OBJS)
 	$(CC) -o $(TARGET) $(OBJS) $(LDFLAGS)
 
 ./build/%.o: ./src/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+./build/%.o: ./src/%.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
