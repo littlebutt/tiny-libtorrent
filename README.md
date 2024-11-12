@@ -13,7 +13,7 @@ compile the project.
 
 ## Compiling
 
-If you are using GCC, run `make` in the root directory. If you are a Windows user, double click `.sln` file to open the
+If you are using GCC, run `mkdir build && make` in the root directory. If you are a Windows user, double click `.sln` file to open the
 project and run it in `x64` mode.
 
 
@@ -42,7 +42,7 @@ The project does not support the following features:
 2. Magnet link
 3. Uploading (Seeding)
 4. Resume from breakpoint
-5. Coroutine (Probably will support soon)
+5. Coroutine (In progress)
 6. NAT traversal
 7. SSL/TLS protocol
 
