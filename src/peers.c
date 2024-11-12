@@ -1,4 +1,11 @@
 #include "peers.h"
+#ifdef USE_CO
+    #include "co.h"
+#endif
+
+#ifdef USE_CO
+coroutine *main_co, *new_co;
+#endif
 
 size_t _read_peers(char **peers, const char *buf, size_t buflen)
 {
@@ -271,7 +278,7 @@ int _read_message(char *buf, int buflen, _peer_context *ctx)
         {
             return 0;
         }
-        ctx->state->downloaded += n; // TODO: Segment Fault. It seems like `ctx` was freed.
+        ctx->state->downloaded += n;
         ctx->io_flag = 1;
         break;
     }
@@ -456,7 +463,15 @@ peer_result *peer_download(peer *p, char *info_hash, const char *peerid, piecewo
             ppw = next;
             continue;
         }
-        if (!_peer_download(ctx, ppw, recv2, unchoke_recvslen + interested_recvslen))
+        int peer_downloaded = 0;
+#ifdef USE_CO
+        main_co = co_new(NULL, 0, NULL, 0);
+        void *params[] = {ctx, ppw, recv2, unchoke_recvslen + interested_recvslen};
+        new_co = co_new(_peer_download, 1024 * 1024, params, 4);
+        co_resume(new_co, &peer_downloaded);
+#endif // USE_CO
+        peer_downloaded = _peer_download(ctx, ppw, recv2, unchoke_recvslen + interested_recvslen);
+        if (!peer_downloaded)
         {
             printf("[peer] Fail to download piece from peer %s:%d for piece #%d\n", p->ip, p->port,
                    ppw->index);

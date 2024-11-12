@@ -48,6 +48,9 @@
     <ClCompile Include="src\piecework.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\co.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\app.h">
@@ -80,5 +83,13 @@
     <ClInclude Include="include\piecework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\co.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="src\co_swap.asm">
+      <Filter>Source Files</Filter>
+    </MASM>
   </ItemGroup>
 </Project>

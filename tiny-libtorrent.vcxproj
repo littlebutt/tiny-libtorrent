@@ -46,6 +46,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -88,7 +89,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USE_CO</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
       <AdditionalIncludeDirectories>$(SolutionDir)\include</AdditionalIncludeDirectories>
     </ClCompile>
@@ -96,6 +97,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
     </Link>
+    <MASM>
+      <PreprocessorDefinitions>__x86_64__</PreprocessorDefinitions>
+    </MASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -124,6 +128,7 @@
   <ItemGroup>
     <ClCompile Include="src\app.c" />
     <ClCompile Include="src\bencode.c" />
+    <ClCompile Include="src\co.c" />
     <ClCompile Include="src\http.c" />
     <ClCompile Include="src\main.c" />
     <ClCompile Include="src\message.c" />
@@ -137,6 +142,7 @@
   <ItemGroup>
     <ClInclude Include="include\app.h" />
     <ClInclude Include="include\bencode.h" />
+    <ClInclude Include="include\co.h" />
     <ClInclude Include="include\http.h" />
     <ClInclude Include="include\message.h" />
     <ClInclude Include="include\peers.h" />
@@ -146,7 +152,14 @@
     <ClInclude Include="include\torrent.h" />
     <ClInclude Include="include\utils.h" />
   </ItemGroup>
+  <ItemGroup>
+    <MASM Include="src\co_swap.asm">
+      <FileType>Document</FileType>
+      <UseSafeExceptionHandlers Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</UseSafeExceptionHandlers>
+    </MASM>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
 </Project>
