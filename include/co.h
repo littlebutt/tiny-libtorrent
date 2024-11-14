@@ -1,10 +1,8 @@
-#ifndef CO_H
-#define CO_H
+#pragma once
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-
 
 #define MAX_PARAMS 8
 
@@ -64,5 +62,3 @@ int co_resume(coroutine *next, void **result);
 int co_yield ();
 
 extern void co_ctx_swap(struct co_context *curr, struct co_context *next);
-
-#endif // CO_H

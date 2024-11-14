@@ -1,5 +1,4 @@
-#ifndef APP_H
-#define APP_H
+#pragma once
 
 #include "http.h"
 #include "peers.h"
@@ -18,5 +17,3 @@ app *app_new(const char *filename);
 int app_download(app *a, const char *dest);
 
 void app_free(app *a);
-
-#endif // APP_H

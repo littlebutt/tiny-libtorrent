@@ -1,5 +1,4 @@
-#ifndef HTTP_H
-#define HTTP_H
+#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,5 +22,3 @@ char *http_url_encode(const char *url, int urllen);
 char *http_response_header(const char *recvs, const char *header);
 
 char *http_response_body(const char *recvs, size_t content_length);
-
-#endif // HTTP_H

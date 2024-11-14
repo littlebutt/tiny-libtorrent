@@ -1,5 +1,4 @@
-#ifndef PEERS_H
-#define PEERS_H
+#pragma once
 
 #include "bencode.h"
 #include "message.h"
@@ -10,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 
 struct _peer {
     char *ip;
@@ -51,5 +49,3 @@ int peer_init(peer **p, const char *buf, size_t buflen);
 void peer_free(peer *p);
 
 peer_result *peer_download(peer *p, char *info_hash, const char *peerid, piecework *pw, int pwlen);
-
-#endif // PEERS_H

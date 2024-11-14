@@ -1,5 +1,4 @@
-#ifndef PIECEWORK_H
-#define PIECEWORK_H
+#pragma once
 
 #include "torrent.h"
 
@@ -21,5 +20,3 @@ piecework *piecework_append(piecework *pw, piecework *node, piecework *prev);
 int piecework_has_piece(char *bitfield, int bitfieldlen, int index);
 
 int piecework_set_piece(char *bitfield, int bitfieldlen, int index);
-
-#endif
