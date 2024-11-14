@@ -16,7 +16,7 @@ int piecework_build(piecework **pw, const torrent *tor)
     size_t hashes_size = tor->_info_pieces_length / 20;
     for (size_t i = 0; i < hashes_size; ++i)
     {
-        ppw = (piecework *)malloc(sizeof(piecework));
+        ppw = (piecework *)calloc(sizeof(piecework), 1);
         if (ppw == NULL)
         {
             // FIXME: memory leak

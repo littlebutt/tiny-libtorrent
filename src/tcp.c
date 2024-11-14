@@ -149,7 +149,7 @@ int tcp_send(int sock, const char *msg, size_t msglen, char **recvs)
     dbg_bin("[tcp] Sent", msg, msglen);
 
     size_t buflen = 1024;
-    char *buf = (char *)malloc(buflen);
+    char *buf = (char *)calloc(buflen, 1);
     if (buf == NULL)
     {
         return 0;
@@ -230,7 +230,7 @@ int tcp_send_for_message(int sock, const char *msg, size_t msglen, char **recvs)
     dbg_bin("[tcp] Sent", msg, msglen);
 
     size_t buflen = 1024;
-    char *buf = (char *)malloc(buflen);
+    char *buf = (char *)calloc(buflen, 1);
     if (buf == NULL)
     {
         return 0;

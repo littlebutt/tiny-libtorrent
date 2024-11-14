@@ -17,7 +17,7 @@
     #include <unistd.h>
     #include <fcntl.h>
     #include <errno.h>
-
+    #include <sys/select.h>
 #endif
 
 #include "utils.h"

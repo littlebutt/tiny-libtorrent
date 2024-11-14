@@ -4,7 +4,7 @@ coroutine *g_curr_co = NULL;
 
 coroutine *co_new(pfunc func, size_t stack_size, void *params[], int param_size)
 {
-    coroutine *co = (coroutine *)malloc(sizeof(coroutine));
+    coroutine *co = (coroutine *)calloc(sizeof(coroutine), 1);
     if (co == NULL)
     {
         return NULL;
@@ -15,7 +15,7 @@ coroutine *co_new(pfunc func, size_t stack_size, void *params[], int param_size)
     }
     else
     {
-        co->stack = (char *)malloc(stack_size);
+        co->stack = (char *)calloc(stack_size, 1);
     }
     co->stack_size = stack_size;
     co->prev = NULL;

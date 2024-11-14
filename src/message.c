@@ -2,7 +2,7 @@
 
 char *message_serialize(const uint8_t id, const char *payload, const size_t payloadlen)
 {
-    char *buf = (char *)malloc(payloadlen + 1 + 4);
+    char *buf = (char *)calloc(payloadlen + 1 + 4, 1);
     if (buf == NULL)
     {
         return 0;
@@ -19,7 +19,7 @@ char *message_serialize(const uint8_t id, const char *payload, const size_t payl
 
 message *message_deserialize(char *buf, int *msglen)
 {
-    message *msg = (message *)malloc(sizeof(message));
+    message *msg = (message *)calloc(sizeof(message), 1);
     if (msg == NULL)
     {
         return NULL;
@@ -78,7 +78,7 @@ int message_parse_piece(message *msg, int msglen, char **buf, int buflen, int in
         return 0;
     }
     data_size = msglen - 8 /*payload head*/ - 5 /*message head*/;
-    data = (char *)malloc(data_size);
+    data = (char *)calloc(data_size, 1);
     memcpy(data, msg->payload + 8, data_size);
     if (msglen - 13 + begin > buflen)
     {
