@@ -4,7 +4,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        printf("Too less variants!\nUsages: tiny-libtorrent torrent_filename");
+        printf("Too less variants!\nUsages: tiny-libtorrent torrent_filename\n");
         exit(1);
     }
     app *a = app_new(argv[1]);
