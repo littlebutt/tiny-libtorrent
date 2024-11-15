@@ -1,5 +1,4 @@
-#ifndef TCP_H
-#define TCP_H
+#pragma once
 
 #include <stdint.h>
 #include <stdio.h>
@@ -18,7 +17,7 @@
     #include <unistd.h>
     #include <fcntl.h>
     #include <errno.h>
-
+    #include <sys/select.h>
 #endif
 
 #include "utils.h"
@@ -30,5 +29,3 @@ void tcp_close(int sock);
 int tcp_send(int sock, const char *msg, size_t msglen, char **recvs);
 
 int tcp_send_for_message(int sock, const char *msg, size_t msglen, char **recvs);
-
-#endif // TCP_H

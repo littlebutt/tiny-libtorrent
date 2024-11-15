@@ -2,7 +2,7 @@
 
 torrent *torrent_new()
 {
-    torrent *tor = (torrent *)malloc(sizeof(torrent));
+    torrent *tor = (torrent *)calloc(sizeof(torrent), 1);
     return tor;
 }
 
@@ -35,10 +35,10 @@ int _torrent_fopen(const char *filename, char **content)
     }
 
     fsize = _torrent_fsize(fp);
-    buf = (char *)malloc((fsize + 1) * sizeof(char));
+    buf = (char *)calloc((fsize + 1) * sizeof(char), 1);
     fread(buf, fsize + 1, sizeof(char), fp);
     buf[fsize] = '\0';
-    *content = (char *)malloc((fsize + 1) * sizeof(char));
+    *content = (char *)calloc((fsize + 1) * sizeof(char), 1);
     memcpy(*content, buf, (fsize + 1) * sizeof(char));
     return fsize + 1;
 }
@@ -57,7 +57,7 @@ int _torrent_decode(torrent **tor, const char *buf, size_t buflen)
         switch (res)
         {
         case BENCODE_STRING: {
-            char *key = (char *)malloc((ctx->toklen + 1) * sizeof(char));
+            char *key = (char *)calloc((ctx->toklen + 1) * sizeof(char), 1);
             if (key == NULL)
             {
                 return 0;
@@ -99,7 +99,7 @@ int _torrent_decode(torrent **tor, const char *buf, size_t buflen)
                 break;
             }
             case 3: {
-                char *value = (char *)malloc(ctx->toklen * sizeof(char));
+                char *value = (char *)calloc(ctx->toklen * sizeof(char), 1);
                 if (value == NULL)
                 {
                     return 0;
@@ -124,7 +124,7 @@ int _torrent_decode(torrent **tor, const char *buf, size_t buflen)
             break;
         }
         case BENCODE_INTEGER: {
-            char *key = (char *)malloc((ctx->toklen + 1) * sizeof(char));
+            char *key = (char *)calloc((ctx->toklen + 1) * sizeof(char), 1);
             memcpy(key, ctx->tok, ctx->toklen);
             key[ctx->toklen] = '\0';
             switch (flag)
@@ -176,7 +176,7 @@ int torrent_parse(torrent *tor, const char *filename)
 
 torrent_hash *torrent_hash_new()
 {
-    torrent_hash *torh = (torrent_hash *)malloc(sizeof(torrent_hash));
+    torrent_hash *torh = (torrent_hash *)calloc(sizeof(torrent_hash), 1);
     return torh;
 }
 
@@ -190,14 +190,14 @@ void torrent_hash_free(torrent_hash *torh)
 size_t _torrent_hash_marshal_info(char **info, torrent *tor)
 {
     char *pieces, *piece_length, *length, *name;
-    char *_pieces_part0 = (char *)malloc(sizeof(char) * 20);
+    char *_pieces_part0 = (char *)calloc(sizeof(char) * 20, 1);
     if (_pieces_part0 == NULL)
     {
         goto ERROR;
     }
     memset(_pieces_part0, 0, 20);
     sprintf(_pieces_part0, "6:pieces%zu:", tor->_info_pieces_length);
-    pieces = (char *)malloc(sizeof(char) * ((tor->_info_pieces_length) + strlen(_pieces_part0)));
+    pieces = (char *)calloc(sizeof(char) * ((tor->_info_pieces_length) + strlen(_pieces_part0)), 1);
     if (pieces == NULL)
     {
         goto ERROR;
@@ -209,19 +209,19 @@ size_t _torrent_hash_marshal_info(char **info, torrent *tor)
     }
     memcpy(pieces, _pieces_part0, strlen(_pieces_part0));
     memcpy(pieces + strlen(_pieces_part0), tor->info_pieces, tor->_info_pieces_length);
-    piece_length = (char *)malloc(sizeof(char) * 512);
+    piece_length = (char *)calloc(sizeof(char), 512);
     if (piece_length == NULL)
     {
         goto ERROR;
     }
     sprintf(piece_length, "12:piece lengthi%zue", tor->info_piece_length);
-    length = (char *)malloc(sizeof(char) * 512);
+    length = (char *)calloc(sizeof(char), 512);
     if (length == NULL)
     {
         goto ERROR;
     }
     sprintf(length, "6:lengthi%zue", tor->info_length);
-    name = (char *)malloc(sizeof(char) * 2048);
+    name = (char *)calloc(sizeof(char), 2048);
     if (name == NULL)
     {
         goto ERROR;
@@ -232,7 +232,7 @@ size_t _torrent_hash_marshal_info(char **info, torrent *tor)
     size_t piece_length_len = strlen(piece_length);
     size_t pieces_len = (tor->_info_pieces_length) + strlen(_pieces_part0);
     size_t infolen = sizeof(char) * (2 + length_len + name_len + piece_length_len + pieces_len);
-    *info = (char *)malloc(infolen);
+    *info = (char *)calloc(infolen, 1);
     memset(*info, 0, 2 + length_len + name_len + piece_length_len + pieces_len);
     memcpy(*info, "d", 1);
     memcpy(*info + 1, length, length_len);
@@ -268,13 +268,13 @@ int torrent_hash_hash(torrent_hash *torh, torrent *tor)
     char *info = NULL;
     char *hashed_info, *pieces_hashes;
     size_t infolen = _torrent_hash_marshal_info(&info, tor);
-    hashed_info = (char *)malloc(sizeof(char) * 20);
+    hashed_info = (char *)calloc(sizeof(char), 20);
     _torrent_hash_hash_info(hashed_info, info, infolen);
     torh->info_hash = hashed_info;
 #ifdef DEBUG
     dbg_bin("hashed_info", hashed_info, 20);
 #endif // DEBUG
-    pieces_hashes = (char *)malloc(tor->info_piece_length * sizeof(char));
+    pieces_hashes = (char *)calloc(tor->info_piece_length, sizeof(char));
     memcpy(pieces_hashes, tor->info_pieces, tor->info_piece_length);
     torh->pieces_hashes = pieces_hashes;
     return 1;

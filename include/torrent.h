@@ -1,5 +1,4 @@
-#ifndef TORRENT_H
-#define TORRENT_H
+#pragma once
 
 #include "bencode.h"
 #include "sha1.h"
@@ -8,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 
 typedef struct {
     char *announce;
@@ -36,5 +34,3 @@ torrent_hash *torrent_hash_new();
 void torrent_hash_free(torrent_hash *torh);
 
 int torrent_hash_hash(torrent_hash *torh, torrent *tor);
-
-#endif // TORRENT_H

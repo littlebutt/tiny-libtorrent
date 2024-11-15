@@ -34,7 +34,7 @@ char *_mangle_url(const char *url)
 
 char *_build_message(const char *hostname, const char *path, const char *params)
 {
-    char *message = (char *)malloc(sizeof(char) * 8192);
+    char *message = (char *)calloc(sizeof(char), 8192);
     if (message == NULL)
     {
         return NULL;
@@ -57,7 +57,7 @@ char *_get_ip_from_url(const char *url)
 {
     struct hostent *he;
     struct in_addr **addr_list;
-    char *ip = (char *)malloc(sizeof(char) * 1024);
+    char *ip = (char *)calloc(sizeof(char), 1024);
 
     if ((he = gethostbyname(url)) == NULL)
     {
@@ -141,7 +141,7 @@ int http_get(const char *url, char **recvs)
     char *port;
 
     server_reply_size = 4096;
-    server_reply = (char *)malloc(sizeof(char) * server_reply_size);
+    server_reply = (char *)calloc(sizeof(char), server_reply_size);
     if (server_reply == NULL)
     {
         return 0;
@@ -283,7 +283,7 @@ char *http_url_encode(const char *url, int urllen)
         }
     }
 
-    char *output = (char *)malloc(output_length + 1);
+    char *output = (char *)calloc(output_length + 1, 1);
     if (!output)
     {
         return NULL;
@@ -333,7 +333,7 @@ char *http_response_body(const char *recvs, size_t content_length)
     char *start = strstr(recvs, "\r\n\r\n");
     if (start != NULL)
     {
-        char *body = (char *)malloc(sizeof(char) * content_length);
+        char *body = (char *)calloc(sizeof(char), content_length);
         if (body == NULL)
         {
             return NULL;

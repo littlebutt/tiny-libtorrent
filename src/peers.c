@@ -22,7 +22,7 @@ size_t _read_peers(char **peers, const char *buf, size_t buflen)
         switch (res)
         {
         case BENCODE_STRING: {
-            char *key = (char *)malloc((ctx->toklen + 1) * sizeof(char));
+            char *key = (char *)calloc((ctx->toklen + 1) * sizeof(char), 1);
             if (key == NULL)
             {
                 return 0;
@@ -40,7 +40,7 @@ size_t _read_peers(char **peers, const char *buf, size_t buflen)
             }
             case 1: {
                 flag = 0;
-                char *value = (char *)malloc(ctx->toklen * sizeof(char));
+                char *value = (char *)calloc(ctx->toklen * sizeof(char), 1);
                 if (value == NULL)
                 {
                     return 0;
@@ -67,7 +67,7 @@ char *_build_ip(char *buf)
     {
         ip[i] = (uint8_t)buf[i];
     }
-    res = (char *)malloc(16);
+    res = (char *)calloc(16, 1);
     snprintf(res, 16, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
     return res;
 }
@@ -89,7 +89,7 @@ int _make_peers(peer **p, const char *buf, size_t buflen)
     {
         char *ip = _build_ip(pb + i);
         int port = _build_port(pb + i + 4);
-        peer *pt = (peer *)malloc(sizeof(peer));
+        peer *pt = (peer *)calloc(sizeof(peer), 1);
         pt->ip = ip;
         pt->port = port;
         pt->next = NULL;
@@ -134,7 +134,7 @@ void peer_free(peer *p)
 
 char *_build_handshake(const char *info_hash, const char *peerid)
 {
-    char *hs_msg = (char *)malloc(sizeof(char) * 68);
+    char *hs_msg = (char *)calloc(sizeof(char), 68);
     memset(hs_msg, 0, 68);
     memcpy(hs_msg, (char[]){0x13}, 1);
     memcpy(hs_msg + 1, "BitTorrent protocol", 19);
@@ -176,7 +176,7 @@ char *_handshake(peer *p, const char *info_hash, const char *peerid, int *socket
     free(handshake);
     int _handshakelen = 1 + pstrlen + 8 + 40;
     reslen = recvslen - _handshakelen;
-    res = (char *)malloc(reslen);
+    res = (char *)calloc(reslen, 1);
     if (res == NULL)
     {
         return NULL;
@@ -192,7 +192,7 @@ int _build_bitfield(char *buf, char **bitfield)
     message *msg;
     char *payload;
     msg = message_deserialize(buf, &msglen);
-    payload = (char *)malloc(msglen - 5);
+    payload = (char *)calloc(msglen - 5, 1);
     if (payload == NULL)
     {
         return 0;
@@ -217,7 +217,7 @@ int _send_interested(int sock, char **recvs)
 
 _peer_context *_peer_context_init(int sock, char *bitfield, int bitfieldlen, char *info_hash)
 {
-    _peer_context *ctx = (_peer_context *)malloc(sizeof(_peer_context));
+    _peer_context *ctx = (_peer_context *)calloc(sizeof(_peer_context), 1);
     ctx->sock = sock;
     ctx->bitfield = bitfield;
     ctx->bitfieldlen = bitfieldlen;
@@ -230,10 +230,10 @@ _peer_context *_peer_context_init(int sock, char *bitfield, int bitfieldlen, cha
 
 _peer_state *_peer_state_init(int index, size_t buflen)
 {
-    _peer_state *state = (_peer_state *)malloc(sizeof(_peer_state));
+    _peer_state *state = (_peer_state *)calloc(sizeof(_peer_state), 1);
     state->index = index;
     state->buflen = buflen;
-    state->buf = (char *)malloc(buflen);
+    state->buf = (char *)calloc(buflen, 1);
     state->requested = 0;
     state->downloaded = 0;
     return state;
@@ -294,7 +294,7 @@ int _read_message(char *buf, int buflen, _peer_context *ctx)
 int _peer_send_request(int sock, uint32_t index, uint32_t requested, uint32_t block_size,
                        char **recvs)
 {
-    char *payload = (char *)malloc(sizeof(char) * 12);
+    char *payload = (char *)calloc(sizeof(char) * 12, 1);
     payload[0] = (index >> 24) & 0xff;
     payload[1] = (index >> 16) & 0xff;
     payload[2] = (index >> 8) & 0xff;
@@ -319,7 +319,7 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
     char *reply = NULL;
     if (replylen != 0)
     {
-        reply = (char *)malloc(replylen);
+        reply = (char *)calloc(replylen, 1);
         memcpy(reply, buf, buflen);
     }
 
@@ -346,7 +346,7 @@ int _peer_download(_peer_context *ctx, const piecework *pw, char *buf, int bufle
                 replylen += recvslen;
                 if (ctx->io_flag == 1)
                 {
-                    reply = (char *)malloc(sizeof(char) * replylen);
+                    reply = (char *)calloc(sizeof(char) * replylen, 1);
                     ctx->io_flag = 0;
                 }
                 else
@@ -387,7 +387,7 @@ ERROR_RETURN:
 int _check_integrity(piecework *pw, _peer_context *ctx)
 {
     assert(ctx->state != NULL);
-    char *hashed_buf = (char *)malloc(20);
+    char *hashed_buf = (char *)calloc(20, 1);
     SHA1_CTX sha1_ctx;
     SHA1Init(&sha1_ctx);
     SHA1Update(&sha1_ctx, (const unsigned char *)ctx->state->buf, ctx->state->buflen);
@@ -401,7 +401,7 @@ int _check_integrity(piecework *pw, _peer_context *ctx)
 
 void _send_have(int sock, uint32_t index)
 {
-    char *payload = (char *)malloc(4);
+    char *payload = (char *)calloc(4, 1);
     payload[0] = (index >> 24) & 0xff;
     payload[1] = (index >> 16) & 0xff;
     payload[2] = (index >> 8) & 0xff;
@@ -414,10 +414,10 @@ void _send_have(int sock, uint32_t index)
 
 peer_result *_build_result(int index, char *buf, size_t buflen)
 {
-    peer_result *res = (peer_result *)malloc(sizeof(peer_result));
+    peer_result *res = (peer_result *)calloc(sizeof(peer_result), 1);
     res->index = index;
     res->buflen = buflen;
-    res->buf = (char *)malloc(buflen);
+    res->buf = (char *)calloc(buflen, 1);
     memcpy(res->buf, buf, buflen);
     res->next = NULL;
     return res;
@@ -444,7 +444,7 @@ peer_result *peer_download(peer *p, char *info_hash, const char *peerid, piecewo
     char *interested_recvs = NULL;
     int interested_recvslen = 0;
     interested_recvslen = _send_interested(sock, &interested_recvs);
-    char *recv2 = (char *)malloc(sizeof(char) * (unchoke_recvslen + interested_recvslen));
+    char *recv2 = (char *)calloc(sizeof(char) * (unchoke_recvslen + interested_recvslen), 1);
     memcpy(recv2, unchoke_recvs, unchoke_recvslen);
     memcpy(recv2 + unchoke_recvslen, interested_recvs, interested_recvslen);
     free(unchoke_recvs);

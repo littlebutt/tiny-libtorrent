@@ -2,7 +2,7 @@
 
 app *app_new(const char *filename)
 {
-    app *a = (app *)malloc(sizeof(app));
+    app *a = (app *)calloc(sizeof(app), 1);
     a->tor = torrent_new();
     if (torrent_parse(a->tor, filename) == 0)
     {
@@ -25,7 +25,7 @@ void app_free(app *a)
 
 char *_build_url(app *a)
 {
-    char *url = (char *)malloc(sizeof(char) * 1024);
+    char *url = (char *)calloc(sizeof(char), 1024);
     if (url == NULL)
     {
         return NULL;
@@ -42,7 +42,7 @@ char *_build_url(app *a)
 int _integrate_peer_result(char **buf, peer_result *res, const torrent *tor)
 {
     peer_result *pr = res;
-    *buf = (char *)malloc(tor->info_length);
+    *buf = (char *)calloc(tor->info_length, 1);
     memset(*buf, 0, tor->info_length);
     if (buf == NULL)
     {

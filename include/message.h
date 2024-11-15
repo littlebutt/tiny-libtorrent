@@ -1,5 +1,4 @@
-#ifndef MESSAGE_H
-#define MESSAGE_H
+#pragma once
 
 #include <stdint.h>
 #include <stdio.h>
@@ -28,5 +27,3 @@ message *message_deserialize(char *buf, int *msglen);
 int message_parse_have(message *msg, int msglen);
 
 int message_parse_piece(message *msg, int msglen, char **buf, int buflen, int index);
-
-#endif // MESSAGE_H

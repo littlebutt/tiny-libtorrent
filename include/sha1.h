@@ -1,8 +1,7 @@
 /*
  * Copy from https://github.com/clibs/sha1
  */
-#ifndef SHA1_H
-#define SHA1_H
+#pragma once
 
 /*
    SHA-1 in C
@@ -35,5 +34,3 @@ void SHA1(char *hash_out, const char *str, uint32_t len);
 #if defined(__cplusplus)
 }
 #endif
-
-#endif /* SHA1_H */

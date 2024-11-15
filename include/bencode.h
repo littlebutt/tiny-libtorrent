@@ -8,8 +8,7 @@
  *
  * This is free and unencumbered software released into the public domain.
  */
-#ifndef BENCODE_H
-#define BENCODE_H
+#pragma once
 
 #include <stddef.h>
 
@@ -124,5 +123,3 @@ void bencode_free(struct bencode *);
  * of memory for the stack.
  */
 int bencode_next(struct bencode *);
-
-#endif
