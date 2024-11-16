@@ -465,12 +465,14 @@ peer_result *peer_download(peer *p, char *info_hash, const char *peerid, piecewo
         }
         int peer_downloaded = 0;
 #ifdef USE_CO
-        main_co = co_new(NULL, 0, NULL, 0);
-        void *params[] = {ctx, ppw, recv2, unchoke_recvslen + interested_recvslen};
-        new_co = co_new(_peer_download, 1024 * 1024, params, 4);
-        co_resume(new_co, &peer_downloaded);
-#endif // USE_CO
+        main_co = co_new(NULL, 0, NULL);
+        void *params = _co_build_params(ctx, ppw, recv2, unchoke_recvslen + interested_recvslen, &peer_downloaded);
+        void *func = co_build_func(_peer_download);
+        new_co = co_new(func, 1024 * 1024, params);
+        co_resume(new_co);
+#else
         peer_downloaded = _peer_download(ctx, ppw, recv2, unchoke_recvslen + interested_recvslen);
+#endif // USE_CO
         if (!peer_downloaded)
         {
             printf("[peer] Fail to download piece from peer %s:%d for piece #%d\n", p->ip, p->port,

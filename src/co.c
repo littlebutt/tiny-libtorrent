@@ -2,7 +2,7 @@
 
 coroutine *g_curr_co = NULL;
 
-coroutine *co_new(pfunc func, size_t stack_size, void *params[], int param_size)
+coroutine *co_new(pfunc func, size_t stack_size, void *args)
 {
     coroutine *co = (coroutine *)calloc(sizeof(coroutine), 1);
     if (co == NULL)
@@ -22,16 +22,7 @@ coroutine *co_new(pfunc func, size_t stack_size, void *params[], int param_size)
     co->status = CO_STATUS_INIT;
     co->func = func;
     memset(&co->ctx, 0, sizeof(co->ctx));
-    if (param_size > MAX_PARAMS)
-    {
-        return NULL;
-    }
-    for (int i = 0; i < param_size; i++)
-    {
-        co->params[i] = params[i];
-    }
-    co->param_size = param_size;
-    co->ret = NULL;
+    co->args = args;
     return co;
 }
 
@@ -44,9 +35,9 @@ void co_free(coroutine *co)
 // XXX: __builtin_apply in GCC
 void _co_entrance(coroutine *co)
 {
-    co->func(co->params[0], co->params[1], co->params[2], co->params[3]);
+    co->func(co->args);
     co->status = CO_STATUS_DEAD;
-    co_yield ();
+    co_yield();
 }
 
 void co_ctx_make(coroutine *co)
@@ -55,6 +46,7 @@ void co_ctx_make(coroutine *co)
     sp = (char *)((intptr_t)sp & -16LL); // 0xff 0xff 0xff 0xf0
     *(void **)sp = (void *)_co_entrance;
     co->ctx.regs[CO_RSP] = sp;
+    co->ctx.regs[CO_RAX] = (char *)_co_entrance;
     co->ctx.regs[CO_RCX] = co;
 }
 
@@ -67,7 +59,7 @@ void _check_init()
     }
 }
 
-int co_resume(coroutine *next, void **result)
+int co_resume(coroutine *next)
 {
     _check_init();
     switch (next->status)
@@ -88,15 +80,10 @@ int co_resume(coroutine *next, void **result)
     curr->status = CO_STATUS_NORMAL;
     next->status = CO_STATUS_RUNNING;
     co_ctx_swap(&curr->ctx, &next->ctx);
-    next->ret = next->ctx.regs[CO_RAX];
-    if (result)
-    {
-        *result = curr->ret;
-    }
     return 1;
 }
 
-int co_yield ()
+int co_yield()
 {
     _check_init();
     coroutine *curr = g_curr_co;

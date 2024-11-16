@@ -32,10 +32,10 @@ enum {
 };
 
 struct co_context {
-    void *regs[13];
+    void *regs[14];
 };
 
-typedef void *(*pfunc)(int count, ...);
+typedef void *(*pfunc)(void *args);
 
 struct _coroutine {
     struct co_context ctx;
@@ -44,20 +44,18 @@ struct _coroutine {
     int status;
     struct _coroutine *prev;
     pfunc func;
-    void *params[MAX_PARAMS];
-    int param_size;
-    void *ret;
+    void *args;
 };
 
 typedef struct _coroutine coroutine;
 
-coroutine *co_new(pfunc func, size_t stack_size, void *params[], int param_size);
+coroutine *co_new(pfunc func, size_t stack_size, void *args);
 
 void co_free(coroutine *co);
 
 void co_ctx_make(coroutine *co);
 
-int co_resume(coroutine *next, void **result);
+int co_resume(coroutine *next);
 
 int co_yield ();
 
