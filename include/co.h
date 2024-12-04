@@ -35,7 +35,7 @@ struct co_context {
     void *regs[14];
 };
 
-typedef void *(*pfunc)(void *args);
+typedef void *(*pfunc)();
 
 struct _coroutine {
     struct co_context ctx;
@@ -44,12 +44,11 @@ struct _coroutine {
     int status;
     struct _coroutine *prev;
     pfunc func;
-    void *args;
 };
 
 typedef struct _coroutine coroutine;
 
-coroutine *co_new(pfunc func, size_t stack_size, void *args);
+coroutine *co_new(pfunc func, size_t stack_size);
 
 void co_free(coroutine *co);
 

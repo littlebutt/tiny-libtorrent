@@ -2,7 +2,7 @@
 
 coroutine *g_curr_co = NULL;
 
-coroutine *co_new(pfunc func, size_t stack_size, void *args)
+coroutine *co_new(pfunc func, size_t stack_size)
 {
     coroutine *co = (coroutine *)calloc(sizeof(coroutine), 1);
     if (co == NULL)
@@ -22,7 +22,6 @@ coroutine *co_new(pfunc func, size_t stack_size, void *args)
     co->status = CO_STATUS_INIT;
     co->func = func;
     memset(&co->ctx, 0, sizeof(co->ctx));
-    co->args = args;
     return co;
 }
 
@@ -35,9 +34,9 @@ void co_free(coroutine *co)
 // XXX: __builtin_apply in GCC
 void _co_entrance(coroutine *co)
 {
-    co->func(co->args);
+    co->func(); // TODO: Sometimes triggers Unknown Signal
     co->status = CO_STATUS_DEAD;
-    co_yield();
+    co_yield ();
 }
 
 void co_ctx_make(coroutine *co)
@@ -83,7 +82,7 @@ int co_resume(coroutine *next)
     return 1;
 }
 
-int co_yield()
+int co_yield ()
 {
     _check_init();
     coroutine *curr = g_curr_co;
